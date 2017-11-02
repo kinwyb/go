@@ -28,18 +28,18 @@ type mysqlTx struct {
 //@param sql string SQL
 //
 //@param args... interface{} SQL参数
-func (m *mysqlTx) QueryRows(sql string, args ...interface{}) db.Row {
+func (m *mysqlTx) QueryRows(sql string, args ...interface{}) db.QueryResult {
 	rows, err := m.tx.Query(sql, args...)
 	if err != nil {
-		return db.DbErr(m.fmterr.FormatError(err))
+		return db.ErrQueryResult(m.fmterr.FormatError(err))
 	}
-	return db.DbRows(rows, m.fmterr)
+	return db.NewQueryResult(rows, m.fmterr)
 }
 
-//Row 查询单条语句,返回结果
+//QueryResult 查询单条语句,返回结果
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (m *mysqlTx) QueryRow(sql string, args ...interface{}) db.Row {
+func (m *mysqlTx) QueryRow(sql string, args ...interface{}) db.QueryResult {
 	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
 		sql = regexp.MustCompile("(?i)(.*?) LIMIT (.*?)\\s?(.*)?").ReplaceAllString(sql, "$1")
 	} else {
@@ -51,12 +51,12 @@ func (m *mysqlTx) QueryRow(sql string, args ...interface{}) db.Row {
 //Exec 执行一条SQL
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (m *mysqlTx) Exec(sql string, args ...interface{}) db.Result {
+func (m *mysqlTx) Exec(sql string, args ...interface{}) db.ExecResult {
 	result, err := m.tx.Exec(sql, args...)
 	if err != nil {
-		return db.DbErrResult(m.fmterr.FormatError(err))
+		return db.ErrExecResult(m.fmterr.FormatError(err))
 	}
-	return db.DbResult(result)
+	return db.NewExecResult(result)
 }
 
 //Count SQL语句条数统计
@@ -86,7 +86,7 @@ func (m *mysqlTx) GetTx() *sql.Tx {
 }
 
 //RowsPage 分页查询
-func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{}) db.Row {
+func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{}) db.QueryResult {
 	if page == nil {
 		return m.QueryRows(sql, args...)
 	}
@@ -95,7 +95,7 @@ func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return db.DbErr(m.fmterr.FormatError(err))
+		return db.ErrQueryResult(m.fmterr.FormatError(err))
 	}
 	page.SetTotal(count)
 	currentpage := 0

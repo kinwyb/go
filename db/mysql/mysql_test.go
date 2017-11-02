@@ -5,6 +5,7 @@ import (
 
 	"github.com/kinwyb/go/db"
 	perr "github.com/kinwyb/go/err"
+	"github.com/kinwyb/golang/gosql"
 	"github.com/smartystreets/goconvey/convey"
 )
 
@@ -17,21 +18,21 @@ func Test_Mysql(t *testing.T) {
 		row := conn.QueryRows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
 		row.Error(func(error perr.Error) {
 			convey.Printf("错误:%s\n", error.Error())
-		}).Rows(func(result map[string]interface{}) bool {
+		}).ForEach(func(result map[string]interface{}) bool {
 			convey.Printf("%s,%s,%d\n", db.StringDefault(result["company_name"], "无数据"), result["company_user"], result["id"])
 			return true
 		})
 		row = conn.QueryRow("SELECT company_user,id FROM rfid_company_user ORDER BY id ASC")
 		row.Error(func(error perr.Error) {
 			convey.Printf("错误:%s\n", error.Error())
-		}).Rows(func(result map[string]interface{}) bool {
+		}).ForEach(func(result map[string]interface{}) bool {
 			convey.Printf("%s,%s,%d\n", db.StringDefault(result["company_name"], "无数据"), result["company_user"], result["id"])
 			return true
 		})
 		row = conn.QueryRows("SELECT creator,paypassword,company_user,id,company_password FROM rfid_company_user ORDER BY id ASC LIMIT 1,1 ")
 		row.Error(func(error perr.Error) {
 			convey.Printf("错误:%s\n", error.Error())
-		}).Rows(func(result map[string]interface{}) bool {
+		}).ForEach(func(result map[string]interface{}) bool {
 			convey.Printf("%s,%s,%d\n", db.StringDefault(result["company_name"], "无数据"), result["company_user"], result["id"])
 			return true
 		})
@@ -42,7 +43,7 @@ func Test_Mysql(t *testing.T) {
 		row = conn.QueryRow("SELECT enablestate FROM rfid_company_user WHERE id = ? ", 25)
 		row.Error(func(i perr.Error) {
 			convey.Printf("查询错误:%s", i.Error())
-		}).Rows(func(result map[string]interface{}) bool {
+		}).ForEach(func(result map[string]interface{}) bool {
 			id := db.Int64Default(result["enablestate"], 0)
 			convey.So(id, convey.ShouldEqual, 1)
 			return true
@@ -64,7 +65,7 @@ func Benchmark_Mysql(b *testing.B) {
 		row := conn.QueryRows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
 		row.Error(func(error perr.Error) {
 			b.Fatalf("错误:%s\n", error.Error())
-		}).Rows(func(res map[string]interface{}) bool {
+		}).ForEach(func(res map[string]interface{}) bool {
 			return true
 		})
 	}
@@ -72,20 +73,20 @@ func Benchmark_Mysql(b *testing.B) {
 }
 
 //上一版本查询测试: github.com/kinwyb/golang/gosql
-//func BenchmarkConnect(b *testing.B) {
-//	b.StopTimer()
-//	conn, err := gosql.Open("mysql://lcfgly:wang93426@tcp(api.zhifangw.cn:3306)/rfid?loc=Local&multiStatements=true")
-//	if err != nil {
-//		b.Fatalf("错误:%s", err.Error())
-//		return
-//	}
-//	b.N = 10
-//	b.StartTimer()
-//	for i := 0; i < b.N; i++ {
-//		_, err := conn.Rows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
-//		if err != nil {
-//			b.Fatalf("错误:%s\n", err.Error())
-//		}
-//	}
-//	conn.Close()
-//}
+func BenchmarkConnect(b *testing.B) {
+	b.StopTimer()
+	conn, err := gosql.Open("mysql://lcfgly:wang93426@tcp(api.zhifangw.cn:3306)/rfid?loc=Local&multiStatements=true")
+	if err != nil {
+		b.Fatalf("错误:%s", err.Error())
+		return
+	}
+	b.N = 10
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		_, err := conn.Rows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
+		if err != nil {
+			b.Fatalf("错误:%s\n", err.Error())
+		}
+	}
+	conn.Close()
+}

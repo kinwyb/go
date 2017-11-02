@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+
 	"github.com/kinwyb/go/err"
 )
 
@@ -30,7 +31,7 @@ type SQL interface {
 	// 		})
 	//param sql string SQL
 	//param args... interface{} SQL参数
-	QueryRow(sql string, args ...interface{}) Row
+	QueryRow(sql string, args ...interface{}) QueryResult
 	//查询多条数据,每条结果以map[string]interface{}方式返回
 	//返回结果,使用本package中的类型函数进行数据解析
 	//eg:
@@ -42,11 +43,11 @@ type SQL interface {
 	// 		})
 	//param sql string SQL
 	//param args... interface{} SQL参数
-	QueryRows(sql string, args ...interface{}) Row
+	QueryRows(sql string, args ...interface{}) QueryResult
 	//Exec 执行一条SQL
 	//param sql string SQL
 	//param args... interface{} SQL参数
-	Exec(sql string, args ...interface{}) Result
+	Exec(sql string, args ...interface{}) ExecResult
 	//Count SQL语句条数统计
 	//param sql string SQL
 	//param args... interface{} SQL参数
@@ -67,7 +68,7 @@ type SQL interface {
 	//param sql string SQL
 	//param page *PageObj 分页数据
 	//param args... interface{} SQL参数
-	QueryWithPage(sql string, page *PageObj, args ...interface{}) Row
+	QueryWithPage(sql string, page *PageObj, args ...interface{}) QueryResult
 	//Transaction 事务处理
 	//param t TransactionFunc 事务处理函数
 	Transaction(t TransactionFunc) err.Error
@@ -90,7 +91,7 @@ type TxSQL interface {
 	// 		})
 	//param sql string SQL
 	//param args... interface{} SQL参数
-	QueryRows(sql string, args ...interface{}) Row
+	QueryRows(sql string, args ...interface{}) QueryResult
 	//Rows 查询多条数据,结果以[]map[string]interface{}方式返回
 	//返回结果,使用本package中的类型函数进行数据解析
 	//eg:
@@ -102,11 +103,11 @@ type TxSQL interface {
 	// 		})
 	//param sql string SQL
 	//param args... interface{} SQL参数
-	QueryRow(sql string, args ...interface{}) Row
+	QueryRow(sql string, args ...interface{}) QueryResult
 	//Exec 执行一条SQL
 	//param sql string SQL
 	//param args... interface{} SQL参数
-	Exec(sql string, args ...interface{}) Result
+	Exec(sql string, args ...interface{}) ExecResult
 	//Count SQL语句条数统计
 	//param sql string SQL
 	//param args... interface{} SQL参数
@@ -123,7 +124,7 @@ type TxSQL interface {
 	//param sql string SQL
 	//param page *PageObj 分页数据
 	//param args... interface{} SQL参数
-	QueryWithPage(sql string, page *PageObj, args ...interface{}) Row
+	QueryWithPage(sql string, page *PageObj, args ...interface{}) QueryResult
 	//GetTx 获取事务对象
 	GetTx() *sql.Tx
 }

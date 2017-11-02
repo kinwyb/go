@@ -85,21 +85,21 @@ func (m *mysql) Close() {
 //@param callback func(*sql.Rows) 回调函数指针
 //
 //@param args... interface{} SQL参数
-func (m *mysql) QueryRows(sql string, args ...interface{}) db.Row {
+func (m *mysql) QueryRows(sql string, args ...interface{}) db.QueryResult {
 	if err := m.connect(); err != nil {
-		return db.DbErr(err)
+		return db.ErrQueryResult(err)
 	}
 	rows, err := m.db.Query(sql, args...)
 	if err != nil {
-		return db.DbErr(m.FormatError(err))
+		return db.ErrQueryResult(m.FormatError(err))
 	}
-	return db.DbRows(rows, m)
+	return db.NewQueryResult(rows, m)
 }
 
 //Row 查询单条语句,返回结果
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (m *mysql) QueryRow(sql string, args ...interface{}) db.Row {
+func (m *mysql) QueryRow(sql string, args ...interface{}) db.QueryResult {
 	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
 		sql = regexp.MustCompile("(?i)(.*?) LIMIT (.*?)\\s?(.*)?").ReplaceAllString(sql, "$1")
 	} else {
@@ -111,15 +111,15 @@ func (m *mysql) QueryRow(sql string, args ...interface{}) db.Row {
 //Exec 执行一条SQL
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (m *mysql) Exec(sql string, args ...interface{}) db.Result {
+func (m *mysql) Exec(sql string, args ...interface{}) db.ExecResult {
 	if err := m.connect(); err != nil {
-		return db.DbErrResult(err)
+		return db.ErrExecResult(err)
 	}
 	result, err := m.db.Exec(sql, args...)
 	if err != nil {
-		return db.DbErrResult(m.FormatError(err))
+		return db.ErrExecResult(m.FormatError(err))
 	}
-	return db.DbResult(result)
+	return db.NewExecResult(result)
 }
 
 //Count SQL语句条数统计
@@ -201,19 +201,19 @@ func (m *mysql) GetDb() (*sql.DB, err.Error) {
 }
 
 //RowsPage 分页查询
-func (m *mysql) QueryWithPage(sql string, page *db.PageObj, args ...interface{}) db.Row {
+func (m *mysql) QueryWithPage(sql string, page *db.PageObj, args ...interface{}) db.QueryResult {
 	if page == nil {
 		return m.QueryRows(sql, args...)
 	}
 	countsql := "select count(0) from (" + sql + ") as total"
 	if err := m.connect(); err != nil {
-		return db.DbErr(err)
+		return db.ErrQueryResult(err)
 	}
 	result := m.db.QueryRow(countsql, args...)
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return db.DbErr(m.FormatError(err))
+		return db.ErrQueryResult(m.FormatError(err))
 	}
 	page.SetTotal(count)
 	currentpage := 0

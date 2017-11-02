@@ -27,7 +27,7 @@ func convertInterfacePoint(it interface{}) interface{} {
 // equal to nil, then Int returns 0, err. Otherwise, Int converts the
 // reply to an int as follows:
 //
-//  Reply type    Result
+//  Reply type    ExecResult
 //  integer       int(reply), nil
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
@@ -68,7 +68,7 @@ func IntDefault(reply interface{}, def ...int) int {
 // not equal to nil, then Int returns 0, err. Otherwise, Int64 converts the
 // reply to an int64 as follows:
 //
-//  Reply type    Result
+//  Reply type    ExecResult
 //  integer       reply, nil
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
@@ -105,7 +105,7 @@ func Int64Default(reply interface{}, def ...int64) int64 {
 // not equal to nil, then Int returns 0, err. Otherwise, Int64 converts the
 // reply to an int64 as follows:
 //
-//  Reply type    Result
+//  Reply type    ExecResult
 //  integer       reply, nil
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
@@ -145,7 +145,7 @@ func Uint64Default(reply interface{}, def ...uint64) uint64 {
 // not equal to nil, then Float64 returns 0, err. Otherwise, Float64 converts
 // the reply to an int as follows:
 //
-//  Reply type    Result
+//  Reply type    ExecResult
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
 //  other         0, error
@@ -181,7 +181,7 @@ func Float64Default(reply interface{}, def ...float64) float64 {
 // equal to nil, then String returns "", err. Otherwise String converts the
 // reply to a string as follows:
 //
-//  Reply type      Result
+//  Reply type      ExecResult
 //  bulk string     string(reply), nil
 //  simple string   reply, nil
 //  nil             "",  ErrNil
@@ -218,7 +218,7 @@ func StringDefault(reply interface{}, def ...string) string {
 // is not equal to nil, then Bytes returns nil, err. Otherwise Bytes converts
 // the reply to a slice of bytes as follows:
 //
-//  Reply type      Result
+//  Reply type      ExecResult
 //  bulk string     reply, nil
 //  simple string   []byte(reply), nil
 //  nil             nil, ErrNil
@@ -251,7 +251,7 @@ func BytesDefault(reply interface{}, def ...[]byte) []byte {
 // equal to nil, then Bool returns false, err. Otherwise Bool converts the
 // reply to boolean as follows:
 //
-//  Reply type      Result
+//  Reply type      ExecResult
 //  integer         value != 0, nil
 //  bulk string     strconv.ParseBool(reply)
 //  nil             false, ErrNil
@@ -289,7 +289,7 @@ func MultiBulk(reply interface{}) ([]interface{}, error) { return Values(reply) 
 // If err is not equal to nil, then Values returns nil, err. Otherwise, Values
 // converts the reply as follows:
 //
-//  Reply type      Result
+//  Reply type      ExecResult
 //  array           reply, nil
 //  nil             nil, ErrNil
 //  other           nil, error
