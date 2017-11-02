@@ -3,6 +3,8 @@ package mysql
 import (
 	"testing"
 
+	"fmt"
+
 	"github.com/kinwyb/go/db"
 	perr "github.com/kinwyb/go/err"
 	"github.com/kinwyb/golang/gosql"
@@ -15,9 +17,10 @@ func Test_Mysql(t *testing.T) {
 	convey.Convey("测试Mysql", t, func() {
 		conn, err := Connect("api.zhifangw.cn:3306", "lcfgly", "wang93426", "rfid", "loc=Local&multiStatements=true")
 		convey.So(err, convey.ShouldBeNil)
-		row := conn.QueryRows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
+		row := conn.QueryRows("SELECT iid,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
 		row.Error(func(error perr.Error) {
-			convey.Printf("错误:%s\n", error.Error())
+			fmt.Printf("\n%s\n", perr.PrintCaller())
+			convey.Printf("错误:[%s] %d %s\n", error.Caller(), error.Code(), error.Error())
 		}).ForEach(func(result map[string]interface{}) bool {
 			convey.Printf("%s,%s,%d\n", db.StringDefault(result["company_name"], "无数据"), result["company_user"], result["id"])
 			return true

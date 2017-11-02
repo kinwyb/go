@@ -2,10 +2,11 @@ package err
 
 //Error 错误接口
 type Error interface {
-	Code() int64   //自定义错误编码
-	Msg() string   //自定义错误消息
-	Err() error    //具体的错误
-	Error() string //继承全局的error接口
+	Code() int64    //自定义错误编码
+	Msg() string    //自定义错误消息
+	Err() error     //具体的错误
+	Caller() string //返回调用堆栈信息
+	Error() string  //继承全局的error接口
 }
 
 //err 公用错误对象
@@ -22,7 +23,11 @@ func (e *err) Error() string {
 	} else if e.e != nil {
 		return e.e.Error()
 	}
-	return ""
+	return " none"
+}
+
+func (e *err) Caller() string {
+	return CallInfo(3)
 }
 
 //Code 错误代码
