@@ -12,15 +12,15 @@ import (
 
 //TCP服务器对象
 type TcpServer struct {
-	socketErr   chan error
+	socketErr   chan Error
 	ctx         context.Context
 	nctx        context.Context
 	ncancelFunc context.CancelFunc
 	conn        net.Listener
-	protocol    *Protocol
 	lg          logs.Logger
 	port        int
-	client      chan SClient
+	client      chan *SClient
+	IsClose     <-chan struct{} //关闭channel
 }
 
 //TCP连接到服务器的客户端
@@ -30,51 +30,46 @@ type SClient struct {
 	ctx         context.Context
 	cancelFunc  context.CancelFunc
 	lg          logs.Logger
-	socketError chan<- error
+	socketError chan<- Error
+	IsClose     <-chan struct{} //关闭channel
+	ID          string          //客户端唯一标示
 }
 
 //新建一个服务端,port为监听端口
 //注意处理channel error 否则程序阻塞无法正常运行
-func NewServer(ctx context.Context, port int) *TcpServer {
+func NewTcpServer(ctx context.Context, port int) *TcpServer {
 	return &TcpServer{
-		socketErr: make(chan error, 100),
+		socketErr: make(chan Error, 100),
 		ctx:       ctx,
-		protocol:  NewProtocol(1000),
 		lg:        logs.NewLogger(),
 		port:      port,
-		client:    make(chan SClient, 100),
+		client:    make(chan *SClient, 100),
 	}
 }
 
 //启动监听该方法会阻塞
-func (s *TcpServer) Listen() error {
+func (s *TcpServer) Listen() {
 	var err error
 	s.nctx, s.ncancelFunc = context.WithCancel(s.ctx)
+	s.IsClose = s.nctx.Done()
 	s.conn, err = net.Listen("tcp", fmt.Sprintf(":%d", s.port))
 	if err != nil {
 		s.lg.Error("查询Socket监听失败:" + err.Error())
-		return err
-	}
-	for {
-		select {
-		case <-s.ctx.Done():
-		case <-s.nctx.Done():
-			s.conn.Close()
-			s.conn = nil
-			return errors.New("关闭")
-		default:
-			if conn, err := s.conn.Accept(); err != nil {
-				s.lg.Error("监听请求连接失败:" + err.Error())
-				s.socketErr <- err
-			} else {
-				s.handleConn(conn)
-			}
+		s.socketErr <- Error{
+			t:   Listen,
+			err: err,
 		}
 	}
+	go s.handleConn()
+	select {
+	case <-s.ctx.Done():
+	case <-s.nctx.Done():
+	}
+	s.conn.Close()
 }
 
 //获取客户端连接
-func (s *TcpServer) Accept() <-chan SClient {
+func (s *TcpServer) Accept() <-chan *SClient {
 	return s.client
 }
 
@@ -91,21 +86,33 @@ func (s *TcpServer) SetLogger(lg logs.Logger) {
 }
 
 //获取错误channel
-func (s *TcpServer) Error() <-chan error {
+func (s *TcpServer) Error() <-chan Error {
 	return s.socketErr
 }
 
 //处理新连接
-func (s *TcpServer) handleConn(conn net.Conn) {
-	sclient := SClient{
-		conn:        conn,
-		protocol:    NewProtocol(1000),
-		socketError: s.socketErr,
-		lg:          s.lg,
+func (s *TcpServer) handleConn() {
+	for {
+		if conn, err := s.conn.Accept(); err != nil {
+			s.lg.Error("监听请求连接失败:" + err.Error())
+			s.socketErr <- Error{
+				t:   Listen,
+				err: err,
+			}
+		} else {
+			sclient := &SClient{
+				conn:        conn,
+				protocol:    NewProtocol(1000),
+				socketError: s.socketErr,
+				lg:          s.lg,
+			}
+			sclient.protocol.SetHeartBeat(heartBeatBytes)
+			sclient.ctx, sclient.cancelFunc = context.WithCancel(s.ctx)
+			sclient.IsClose = sclient.ctx.Done()
+			go sclient.readData()
+			s.client <- sclient
+		}
 	}
-	sclient.ctx, sclient.cancelFunc = context.WithCancel(s.ctx)
-	go sclient.readData()
-	s.client <- sclient
 }
 
 //读取客户端数据
@@ -113,27 +120,17 @@ func (s *SClient) readData() {
 	defer recoverPainc(s.readData)
 	data := make([]byte, 1024)
 	for {
-		select {
-		case <-s.ctx.Done():
-		case <-s.ctx.Done():
-			if s.conn != nil {
-				s.conn.Close()
-				s.conn = nil
+		i, err := s.conn.Read(data)
+		if err != nil {
+			s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
+			s.socketError <- Error{
+				t:   Read,
+				err: fmt.Errorf("%s=>%s", s.ID, err.Error()),
 			}
-			//这里显示结束
+			s.Close()
 			return
-		default:
-			i, err := s.conn.Read(data)
-			if err != nil {
-				s.lg.Error("数据读取错误:" + err.Error())
-				s.socketError <- err
-				s.conn.Close()
-				s.conn = nil
-				s.cancelFunc()
-				return
-			}
-			s.protocol.Unpack(data[0:i])
 		}
+		s.protocol.Unpack(data[0:i])
 	}
 }
 
@@ -144,21 +141,24 @@ func (s *SClient) Write(data []byte) error {
 	}
 	_, err := s.conn.Write(s.protocol.Packet(data))
 	if err != nil {
-		ret := fmt.Errorf("数据发送失败:%s", err.Error())
-		s.cancelFunc()
-		return ret
+		return fmt.Errorf("数据发送失败:%s", err.Error())
 	}
 	return nil
 }
 
-//处理连接请求
+//读取消息
 func (s *SClient) Read() <-chan []byte {
-	return s.protocol.Read()
+	return s.protocol.data
 }
 
 //关闭连接
 func (s *SClient) Close() {
 	if s.cancelFunc != nil {
 		s.cancelFunc()
+		s.conn.Close()
+		s.socketError <- Error{
+			t:   Cancel,
+			err: fmt.Errorf("%s", s.ID),
+		}
 	}
 }

@@ -19,11 +19,10 @@ func TestNewProtocol(t *testing.T) {
 
 func TestProtocol_intToByte(t *testing.T) {
 	convey.Convey("IntByte转换", t, func() {
-		prc := NewProtocol()
 		for i := 0; i < 10000000; i++ {
 			c := rand.Int63()
-			b := prc.intToByte(int64(c))
-			x := prc.byteToInt(b)
+			b := IntToByte(int64(c))
+			x := ByteToInt(b)
 			convey.So(c, convey.ShouldEqual, x)
 		}
 	})

@@ -11,50 +11,65 @@ import (
 )
 
 type TcpClient struct {
-	socketError chan error         //连接错误队列
+	socketError chan Error         //连接错误队列
 	addr        string             //服务器地址
 	ctx         context.Context    //
 	nctx        context.Context    //内部的context
 	ncancelFunc context.CancelFunc //关闭函数
 	protocol    *Protocol          //沾包处理
 	conn        net.Conn           //socket连接
-	lg          logs.Logger
+	lg          logs.Logger        //日志
+	IsClose     <-chan struct{}    //关闭channel
+	isConnect   chan bool          //是否连接
 }
 
 //新客户端对象,注意输出channel error
 //否则错误阻塞可能会到这无法正常运行
 func NewTcpClient(ctx context.Context, addr string) *TcpClient {
 	return &TcpClient{
-		socketError: make(chan error, 100),
+		socketError: make(chan Error, 100),
 		ctx:         ctx,
 		addr:        addr,
 		protocol:    NewProtocol(1000),
 		lg:          logs.NewLogger(),
+		isConnect:   make(chan bool),
 	}
 }
 
 //连接服务器,该方法会阻塞知道连接异常或ctx关闭
-//建议使用go ConnectServer()方式运行
-func (c *TcpClient) ConnectServer() {
-	defer recoverPainc(c.ConnectServer)
+func (c *TcpClient) connectServer() {
+	defer recoverPainc(c.connectServer)
 	var err error
 	c.protocol.SetHeartBeat(heartBeatBytes) //设置心跳包内容
 	c.conn, err = net.Dial("tcp", c.addr)
 	if err != nil {
+		c.isConnect <- false
 		c.lg.Error("服务器连接失败:%s", err.Error())
-		c.socketError <- err
+		c.socketError <- Error{
+			t:   Connect,
+			err: err,
+		}
 		return
 	}
+	c.isConnect <- true
 	c.nctx, c.ncancelFunc = context.WithCancel(c.ctx)
 	c.lg.Info("服务器连接成功...")
-	c.protocol = NewProtocol(1000)
+	c.IsClose = c.nctx.Done()
 	go c.readData()
 	go c.heartbeat() //心跳线程...
 	select {
 	case <-c.ctx.Done():
 	case <-c.nctx.Done():
 	}
-	c.conn.Close()
+	if c.conn != nil {
+		c.conn.Close()
+	}
+}
+
+//连接服务器返回连接结果是否成功
+func (c *TcpClient) Connect() bool {
+	go c.connectServer()
+	return <-c.isConnect
 }
 
 //读取数据
@@ -62,32 +77,34 @@ func (c *TcpClient) readData() {
 	defer recoverPainc(c.readData)
 	data := make([]byte, 1024)
 	for {
-		select {
-		case <-c.ctx.Done():
-		case <-c.nctx.Done():
-			//这里显示结束
-			return
-		default:
-			i, err := c.conn.Read(data)
-			if err != nil {
-				c.lg.Error("数据读取错误:" + err.Error())
-				c.socketError <- err
-				c.ncancelFunc()
-				go c.ConnectServer()
-				return
+		i, err := c.conn.Read(data)
+		if err != nil {
+			c.lg.Error("数据读取错误:" + err.Error())
+			c.socketError <- Error{
+				t:   Read,
+				err: err,
 			}
-			c.protocol.Unpack(data[0:i])
+			c.Close()
+			return
 		}
+		c.protocol.Unpack(data[0:i])
 	}
 }
 
 //发送数据
 func (c *TcpClient) Write(data []byte) {
+	if c.conn == nil {
+		c.socketError <- Error{
+			t:   Send,
+			err: errors.New("连接已经关闭"),
+		}
+	}
 	_, err := c.conn.Write(c.protocol.Packet(data))
 	if err != nil {
-		c.socketError <- errors.New("心跳发送失败")
-		c.ncancelFunc()      //关闭连接
-		go c.ConnectServer() //重新开启连接
+		c.socketError <- Error{
+			t:   Send,
+			err: err,
+		}
 	}
 }
 
@@ -97,7 +114,7 @@ func (c *TcpClient) Msg() <-chan []byte {
 }
 
 //获取错误channel
-func (c *TcpClient) Error() <-chan error {
+func (c *TcpClient) Error() <-chan Error {
 	return c.socketError
 }
 
@@ -120,11 +137,14 @@ func (c *TcpClient) heartbeat() {
 	for {
 		select {
 		case <-t.C:
-			_, err := c.conn.Write(c.protocol.Packet([]byte("heartbeat")))
+			_, err := c.conn.Write(c.protocol.Packet(heartBeatBytes))
 			if err != nil {
-				c.socketError <- errors.New("心跳发送失败")
-				c.ncancelFunc()      //关闭连接
-				go c.ConnectServer() //重新开启连接
+				c.socketError <- Error{
+					t:   Send,
+					err: errors.New("心跳发送失败"),
+				}
+				c.ncancelFunc() //关闭连接
+				c.Connect()     //重新连接
 			}
 		case <-c.ctx.Done():
 		case <-c.nctx.Done():
