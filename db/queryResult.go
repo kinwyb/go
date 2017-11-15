@@ -45,12 +45,15 @@ func NewQueryResult(rows *sql.Rows, fmterr FormatError) QueryResult {
 	} else {
 		var err error
 		ret.columns, err = rows.Columns()
-		if fmterr != nil {
-			ret.err = fmterr.FormatError(err)
-		} else {
-			ret.err = perr.NewError(1, "查询字段读取错误", err)
+		if err != nil {
+			if fmterr != nil {
+				ret.err = fmterr.FormatError(err)
+			} else {
+				ret.err = perr.NewError(1, "查询字段读取错误", err)
+			}
+		}else{
+			ret.rows = rows
 		}
-		ret.rows = rows
 	}
 	return ret
 }

@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -49,7 +50,8 @@ type logger struct {
 }
 
 func NewFileLogger(filename string, t time.Duration) Logger {
-	if fd, err := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive); nil == err {
+	fd, e := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive)
+	if nil == e {
 		ret := &logger{
 			logger:   log.New(fd, "", log.LstdFlags),
 			file:     fd,
@@ -59,11 +61,15 @@ func NewFileLogger(filename string, t time.Duration) Logger {
 		}
 		if index := strings.LastIndex(filename, "/"); index != -1 {
 			ret.filedir = filename[0:index] + "/"
+			ret.filedir, _ = filepath.Abs(ret.filedir)
+			fmt.Printf("%s", ret.filedir)
 			ret.filename = filename[index:]
 			os.MkdirAll(filename[0:index], os.ModePerm)
 		}
 		go createLogFile(ret)
 		return ret
+	} else {
+		fmt.Printf("%s", e.Error())
 	}
 	return NewBeegoFileLog(1, filename, 10)
 }
@@ -107,7 +113,12 @@ func (lg *logger) Emergency(format string, args ...interface{}) {
 func createLogFile(lg *logger) {
 	t := time.NewTimer(1)
 	now := time.Now()
+	first := true
 	for {
+		if first { //第一次等待时间跳过
+			<-t.C
+			first = false
+		}
 		switch lg.t {
 		case time.Minute:
 			next := now.Add(time.Minute)
@@ -123,13 +134,13 @@ func createLogFile(lg *logger) {
 			t.Reset(next.Sub(now))
 		}
 		<-t.C
-		fmt.Printf("开始创建新文件....\n")
 		now = time.Now()
 		filename := fmt.Sprintf("%s_%04d%02d%02d_%02d%02d%02d.log", lg.filename, now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
 		if err := os.Rename(lg.filedir+"/"+lg.filename, lg.filedir+"/"+filename); err != nil {
 			fmt.Printf("文件命名失败:%s", err.Error())
 			//日志文件重命名失败
 		} else {
+			os.Chmod(lg.filedir+"/"+filename, os.ModePerm) //修改权限
 			if fd, err := os.OpenFile(lg.filedir+"/"+lg.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive); nil == err {
 				lg.logger.SetOutput(fd)
 				lg.file.Sync()
