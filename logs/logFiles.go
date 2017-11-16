@@ -33,7 +33,9 @@ func NewLogFiles(filepath string, t time.Duration, level ...Level) *LogFiles {
 //设置输出日志等级
 func (lf *LogFiles) Level(filename string, level Level) {
 	if v, ok := lf.logmap.Load(filename); ok {
-		v.(logger).level = level
+		if x, ok := v.(logger); ok {
+			x.level = level
+		}
 	} else {
 		var l Logger
 		if lf.filepath == "" {
