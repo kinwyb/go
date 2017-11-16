@@ -26,6 +26,8 @@ const (
 //Logger 日志接口
 type Logger interface {
 	//输出
+	Debug(format string, args ...interface{})
+	//输出
 	Info(format string, args ...interface{})
 	//警告
 	Warning(format string, args ...interface{})
@@ -49,7 +51,7 @@ type logger struct {
 	level    Level
 }
 
-func NewFileLogger(filename string, t time.Duration) Logger {
+func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
 	fd, e := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive)
 	if nil == e {
 		ret := &logger{
@@ -58,6 +60,10 @@ func NewFileLogger(filename string, t time.Duration) Logger {
 			filename: filename,
 			filedir:  "./",
 			t:        t,
+			level:    Debug,
+		}
+		if len(level) > 0 {
+			ret.level = level[0]
 		}
 		if index := strings.LastIndex(filename, "/"); index != -1 {
 			ret.filedir = filename[0:index] + "/"
@@ -74,39 +80,70 @@ func NewFileLogger(filename string, t time.Duration) Logger {
 	return NewBeegoFileLog(1, filename, 10)
 }
 
-func NewLogger() Logger {
-	return &logger{
+func NewLogger(level ...Level) Logger {
+	ret := &logger{
 		logger: log.New(os.Stdout, "", log.LstdFlags),
+		level:  Debug,
 	}
+	if len(level) > 0 {
+		ret.level = level[0]
+	}
+	return ret
+}
+
+//输出
+func (lg *logger) Debug(format string, args ...interface{}) {
+	if lg.level < Debug {
+		return
+	}
+	lg.logger.Printf("[D] "+format, args...)
 }
 
 //输出
 func (lg *logger) Info(format string, args ...interface{}) {
+	if lg.level < Info {
+		return
+	}
 	lg.logger.Printf("[I] "+format, args...)
 }
 
 //警告
 func (lg *logger) Warning(format string, args ...interface{}) {
+	if lg.level < Warn {
+		return
+	}
 	lg.logger.Printf("[W] "+format, args...)
 }
 
 //错误
 func (lg *logger) Error(format string, args ...interface{}) {
+	if lg.level < Error {
+		return
+	}
 	lg.logger.Printf("[E] "+format, args...)
 }
 
 //关键
 func (lg *logger) Critical(format string, args ...interface{}) {
+	if lg.level < Critical {
+		return
+	}
 	lg.logger.Printf("[C] "+format, args...)
 }
 
 //警报
 func (lg *logger) Alert(format string, args ...interface{}) {
+	if lg.level < Alert {
+		return
+	}
 	lg.logger.Printf("[A] "+format, args...)
 }
 
 //紧急
 func (lg *logger) Emergency(format string, args ...interface{}) {
+	if lg.level < Emergency {
+		return
+	}
 	lg.logger.Printf("[E] "+format, args...)
 }
 
