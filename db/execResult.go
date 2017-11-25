@@ -3,15 +3,15 @@ package db
 import (
 	"database/sql"
 
-	"github.com/kinwyb/go/err"
+	"github.com/kinwyb/go/err1"
 )
 
 type ExecResult interface {
 	sql.Result
 	//出错时回调参数方法
-	Error(func(err.Error)) ExecResult
+	Error(func(err1.Error)) ExecResult
 	//是否出错
-	HasError() err.Error
+	HasError() err1.Error
 }
 
 //获取一个操作结果对象
@@ -23,7 +23,7 @@ func NewExecResult(rs sql.Result) ExecResult {
 }
 
 //查询错误结果
-func ErrExecResult(err err.Error) ExecResult {
+func ErrExecResult(err err1.Error) ExecResult {
 	return &rus{
 		err: err,
 	}
@@ -31,16 +31,16 @@ func ErrExecResult(err err.Error) ExecResult {
 
 type rus struct {
 	sql.Result
-	err err.Error //查询错误
+	err err1.Error //查询错误
 }
 
-func (r *rus) Error(f func(err.Error)) ExecResult {
+func (r *rus) Error(f func(err1.Error)) ExecResult {
 	if r.err != nil && f != nil {
 		f(r.err)
 	}
 	return r
 }
 
-func (r *rus) HasError() err.Error {
+func (r *rus) HasError() err1.Error {
 	return r.err
 }

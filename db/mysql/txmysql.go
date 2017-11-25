@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/kinwyb/go/db"
-	"github.com/kinwyb/go/err"
+	"github.com/kinwyb/go/err1"
 )
 
 //MySQLTx 事务操作
@@ -62,7 +62,7 @@ func (m *mysqlTx) Exec(sql string, args ...interface{}) db.ExecResult {
 //Count SQL语句条数统计
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (m *mysqlTx) Count(sql string, args ...interface{}) (int64, err.Error) {
+func (m *mysqlTx) Count(sql string, args ...interface{}) (int64, err1.Error) {
 	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
 		sql = "SELECT COUNT(1) FROM (" + sql + ") as tmp"
 	}

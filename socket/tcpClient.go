@@ -7,6 +7,7 @@ import (
 
 	"errors"
 
+	"github.com/kinwyb/go/err1"
 	"github.com/kinwyb/go/logs"
 )
 
@@ -44,7 +45,7 @@ func (c *TcpClient) connectServer() {
 	c.conn, err = net.Dial("tcp", c.addr)
 	if err != nil {
 		c.isConnect <- false
-		c.lg.Error("服务器连接失败:%s", err.Error())
+		c.lg.Error("服务器连接失败:%s", err1.Error())
 		c.socketError <- Error{
 			t:   Connect,
 			err: err,
@@ -79,7 +80,7 @@ func (c *TcpClient) readData() {
 	for {
 		i, err := c.conn.Read(data)
 		if err != nil {
-			c.lg.Error("数据读取错误:" + err.Error())
+			c.lg.Error("数据读取错误:" + err1.Error())
 			c.socketError <- Error{
 				t:   Read,
 				err: err,

@@ -1,4 +1,4 @@
-package err
+package err1
 
 //Error 错误接口
 type Error interface {

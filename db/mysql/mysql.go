@@ -12,7 +12,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kinwyb/go/db"
-	"github.com/kinwyb/go/err"
+	"github.com/kinwyb/go/err1"
 )
 
 var rep *regexp.Regexp
@@ -26,7 +26,7 @@ type mysql struct {
 	db *sql.DB
 }
 
-func (m *mysql) connect() err.Error {
+func (m *mysql) connect() err1.Error {
 	if m.db == nil {
 		return m.FormatError(db.ErrorNotOpen)
 	}
@@ -36,7 +36,7 @@ func (m *mysql) connect() err.Error {
 	return nil
 }
 
-func (m *mysql) FormatError(e error) err.Error {
+func (m *mysql) FormatError(e error) err1.Error {
 	if e == nil {
 		return nil
 	}
@@ -50,7 +50,7 @@ func (m *mysql) FormatError(e error) err.Error {
 			code = cod
 		}
 	}
-	return err.NewError(code, msg, e)
+	return err1.NewError(code, msg, e)
 }
 
 //链接mysql数据库，其中other参数代表链接字符串附加的配置信息
@@ -125,7 +125,7 @@ func (m *mysql) Exec(sql string, args ...interface{}) db.ExecResult {
 //Count SQL语句条数统计
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (m *mysql) Count(sql string, args ...interface{}) (int64, err.Error) {
+func (m *mysql) Count(sql string, args ...interface{}) (int64, err1.Error) {
 	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
 		sql = "SELECT COUNT(1) FROM (" + sql + ") as tmp"
 	}
@@ -149,7 +149,7 @@ func (m *mysql) Count(sql string, args ...interface{}) (int64, err.Error) {
 //ParseSQL 解析SQL
 //@param sql string SQL
 //@param args map[string]interface{} 参数映射
-func (m *mysql) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, err.Error) {
+func (m *mysql) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, err1.Error) {
 	cp, err := regexp.Compile("@([^\\s|,|\\)]*)")
 	if err != nil {
 		return sql, nil, nil
@@ -171,7 +171,7 @@ func (m *mysql) ParseSQL(sql string, args map[string]interface{}) (string, []int
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mysql) Transaction(t db.TransactionFunc) err.Error {
+func (m *mysql) Transaction(t db.TransactionFunc) err1.Error {
 	if err := m.connect(); err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (m *mysql) Transaction(t db.TransactionFunc) err.Error {
 }
 
 //GetDb 获取数据库对象
-func (m *mysql) GetDb() (*sql.DB, err.Error) {
+func (m *mysql) GetDb() (*sql.DB, err1.Error) {
 	if err := m.connect(); err != nil {
 		return nil, err
 	}

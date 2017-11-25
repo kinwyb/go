@@ -3,7 +3,7 @@ package db
 import (
 	"database/sql"
 
-	perr "github.com/kinwyb/go/err"
+	"github.com/kinwyb/go/err1"
 )
 
 //查询结果返回接口
@@ -12,9 +12,9 @@ type QueryResult interface {
 	//如果参数func返回true，并且还有下一条结果则再次调用func返回下一条
 	ForEach(func(map[string]interface{}) bool) QueryResult
 	//出错时回调参数方法
-	Error(func(perr.Error)) QueryResult
+	Error(func(err1.Error)) QueryResult
 	//是否出错
-	HasError() perr.Error
+	HasError() err1.Error
 	//是否为空
 	IsEmpty() bool
 	//结果空是回调参数方法
@@ -49,9 +49,9 @@ func NewQueryResult(rows *sql.Rows, fmterr FormatError) QueryResult {
 			if fmterr != nil {
 				ret.err = fmterr.FormatError(err)
 			} else {
-				ret.err = perr.NewError(1, "查询字段读取错误", err)
+				ret.err = err1.NewError(1, "查询字段读取错误", err)
 			}
-		}else{
+		} else {
 			ret.rows = rows
 		}
 	}
@@ -59,7 +59,7 @@ func NewQueryResult(rows *sql.Rows, fmterr FormatError) QueryResult {
 }
 
 //返回一个查询错误
-func ErrQueryResult(err perr.Error) QueryResult {
+func ErrQueryResult(err err1.Error) QueryResult {
 	return &res{
 		err: err,
 	}
@@ -70,18 +70,18 @@ type res struct {
 	data       [][]interface{} //查询结果内容
 	datalength int             //结果长度
 	rows       *sql.Rows       //查询结果对象
-	err        perr.Error      //查询错误
+	err        err1.Error      //查询错误
 	errFmt     FormatError     //错误格式化
 }
 
-func (r *res) Error(f func(perr.Error)) QueryResult {
+func (r *res) Error(f func(err1.Error)) QueryResult {
 	if r.err != nil && f != nil {
 		f(r.err)
 	}
 	return r
 }
 
-func (r *res) HasError() perr.Error {
+func (r *res) HasError() err1.Error {
 	return r.err
 }
 
@@ -114,7 +114,7 @@ func (r *res) passRows() {
 				if r.errFmt != nil {
 					r.err = r.errFmt.FormatError(err)
 				} else {
-					r.err = perr.NewError(1, "数据读取错误", err)
+					r.err = err1.NewError(1, "数据读取错误", err)
 				}
 				return
 			}

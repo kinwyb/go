@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/kinwyb/go/db"
-	perr "github.com/kinwyb/go/err"
+	"github.com/kinwyb/go/err1"
 	"github.com/kinwyb/golang/gosql"
 	"github.com/smartystreets/goconvey/convey"
 )
@@ -18,33 +18,33 @@ func Test_Mysql(t *testing.T) {
 		conn, err := Connect("api.zhifangw.cn:3306", "lcfgly", "wang93426", "rfid", "loc=Local&multiStatements=true")
 		convey.So(err, convey.ShouldBeNil)
 		row := conn.QueryRows("SELECT iid,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
-		row.Error(func(error perr.Error) {
-			fmt.Printf("\n%s\n", perr.PrintCaller())
+		row.Error(func(error err1.Error) {
+			fmt.Printf("\n%s\n", err1.PrintCaller())
 			convey.Printf("错误:[%s] %d %s\n", error.Caller(), error.Code(), error.Error())
 		}).ForEach(func(result map[string]interface{}) bool {
 			convey.Printf("%s,%s,%d\n", db.StringDefault(result["company_name"], "无数据"), result["company_user"], result["id"])
 			return true
 		})
 		row = conn.QueryRow("SELECT company_user,id FROM rfid_company_user ORDER BY id ASC")
-		row.Error(func(error perr.Error) {
+		row.Error(func(error err1.Error) {
 			convey.Printf("错误:%s\n", error.Error())
 		}).ForEach(func(result map[string]interface{}) bool {
 			convey.Printf("%s,%s,%d\n", db.StringDefault(result["company_name"], "无数据"), result["company_user"], result["id"])
 			return true
 		})
 		row = conn.QueryRows("SELECT creator,paypassword,company_user,id,company_password FROM rfid_company_user ORDER BY id ASC LIMIT 1,1 ")
-		row.Error(func(error perr.Error) {
+		row.Error(func(error err1.Error) {
 			convey.Printf("错误:%s\n", error.Error())
 		}).ForEach(func(result map[string]interface{}) bool {
 			convey.Printf("%s,%s,%d\n", db.StringDefault(result["company_name"], "无数据"), result["company_user"], result["id"])
 			return true
 		})
 		result := conn.Exec("UPDATE rfid_company_user SET enablestate = 1 WHERE id = ? ", 25)
-		result.Error(func(i perr.Error) {
+		result.Error(func(i err1.Error) {
 			convey.Printf("更新错误:%s", i.Error())
 		})
 		row = conn.QueryRow("SELECT enablestate FROM rfid_company_user WHERE id = ? ", 25)
-		row.Error(func(i perr.Error) {
+		row.Error(func(i err1.Error) {
 			convey.Printf("查询错误:%s", i.Error())
 		}).ForEach(func(result map[string]interface{}) bool {
 			id := db.Int64Default(result["enablestate"], 0)
@@ -66,7 +66,7 @@ func Benchmark_Mysql(b *testing.B) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		row := conn.QueryRows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
-		row.Error(func(error perr.Error) {
+		row.Error(func(error err1.Error) {
 			b.Fatalf("错误:%s\n", error.Error())
 		}).ForEach(func(res map[string]interface{}) bool {
 			return true

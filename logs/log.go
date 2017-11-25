@@ -68,7 +68,6 @@ func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
 		if index := strings.LastIndex(filename, "/"); index != -1 {
 			ret.filedir = filename[0:index] + "/"
 			ret.filedir, _ = filepath.Abs(ret.filedir)
-			fmt.Printf("%s", ret.filedir)
 			ret.filename = filename[index:]
 			os.MkdirAll(filename[0:index], os.ModePerm)
 		}
@@ -96,7 +95,11 @@ func (lg *logger) Debug(format string, args ...interface{}) {
 	if lg.level < Debug {
 		return
 	}
-	lg.logger.Printf("[D] "+format, args...)
+	if lg.filedir != "" {
+		lg.logger.Printf("[D] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[34m[D] "+format+"\x1b[0m", args...)
+	}
 }
 
 //输出
@@ -104,7 +107,11 @@ func (lg *logger) Info(format string, args ...interface{}) {
 	if lg.level < Info {
 		return
 	}
-	lg.logger.Printf("[I] "+format, args...)
+	if lg.filedir != "" {
+		lg.logger.Printf("[I] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[36m[I] "+format+"\x1b[0m", args...)
+	}
 }
 
 //警告
@@ -112,7 +119,11 @@ func (lg *logger) Warning(format string, args ...interface{}) {
 	if lg.level < Warn {
 		return
 	}
-	lg.logger.Printf("[W] "+format, args...)
+	if lg.filedir != "" {
+		lg.logger.Printf("[W] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[33m[W] "+format+"\x1b[0m", args...)
+	}
 }
 
 //错误
@@ -120,7 +131,11 @@ func (lg *logger) Error(format string, args ...interface{}) {
 	if lg.level < Error {
 		return
 	}
-	lg.logger.Printf("[E] "+format, args...)
+	if lg.filedir != "" {
+		lg.logger.Printf("[E] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[31m[E] "+format+"\x1b[0m", args...)
+	}
 }
 
 //关键
@@ -128,7 +143,11 @@ func (lg *logger) Critical(format string, args ...interface{}) {
 	if lg.level < Critical {
 		return
 	}
-	lg.logger.Printf("[C] "+format, args...)
+	if lg.filedir != "" {
+		lg.logger.Printf("[C] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[1m\x1b[31m[C] "+format+"\x1b[0m\x1b[21m", args...)
+	}
 }
 
 //警报
@@ -136,7 +155,11 @@ func (lg *logger) Alert(format string, args ...interface{}) {
 	if lg.level < Alert {
 		return
 	}
-	lg.logger.Printf("[A] "+format, args...)
+	if lg.filedir != "" {
+		lg.logger.Printf("[A] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[35m[A] "+format+"\x1b[0m", args...)
+	}
 }
 
 //紧急
@@ -144,7 +167,11 @@ func (lg *logger) Emergency(format string, args ...interface{}) {
 	if lg.level < Emergency {
 		return
 	}
-	lg.logger.Printf("[E] "+format, args...)
+	if lg.filedir != "" {
+		lg.logger.Printf("[EG] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[1m\x1b[35m[EG] "+format+"\x1b[0m\x1b[21m", args...)
+	}
 }
 
 func createLogFile(lg *logger) {
@@ -187,5 +214,28 @@ func createLogFile(lg *logger) {
 				fmt.Printf("新文件创建失败:%s\n", err.Error())
 			}
 		}
+	}
+}
+
+//WriteLog 写入日志
+func WriteLog(log Logger, level Level, format string, args ...interface{}) {
+	if log == nil {
+		return
+	}
+	switch level {
+	case Emergency:
+		log.Emergency(format, args...)
+	case Alert:
+		log.Alert(format, args...)
+	case Critical:
+		log.Critical(format, args...)
+	case Error:
+		log.Error(format, args...)
+	case Warn:
+		log.Warning(format, args...)
+	case Info:
+		log.Info(format, args...)
+	case Debug:
+		log.Debug(format, args...)
 	}
 }

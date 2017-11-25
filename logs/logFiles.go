@@ -30,6 +30,22 @@ func NewLogFiles(filepath string, t time.Duration, level ...Level) *LogFiles {
 	return ret
 }
 
+//获取指定日志
+func (lf *LogFiles) GetLog(filename string) Logger {
+	if v, ok := lf.logmap.Load(filename); ok {
+		return v.(Logger)
+	} else {
+		var l Logger
+		if lf.filepath == "" {
+			l = NewLogger()
+		} else {
+			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t)
+		}
+		lf.logmap.Store(filename, l)
+		return l
+	}
+}
+
 //设置输出日志等级
 func (lf *LogFiles) Level(filename string, level Level) {
 	if v, ok := lf.logmap.Load(filename); ok {
