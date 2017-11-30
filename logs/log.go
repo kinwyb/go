@@ -52,6 +52,11 @@ type logger struct {
 }
 
 func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
+	if index := strings.LastIndex(filename, "/"); index != -1 { //创建文件夹
+		filedir := filename[0:index] + "/"
+		filedir, _ = filepath.Abs(filedir)
+		os.MkdirAll(filename[0:index], os.ModePerm)
+	}
 	fd, e := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive)
 	if nil == e {
 		ret := &logger{
@@ -64,12 +69,6 @@ func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
 		}
 		if len(level) > 0 {
 			ret.level = level[0]
-		}
-		if index := strings.LastIndex(filename, "/"); index != -1 {
-			ret.filedir = filename[0:index] + "/"
-			ret.filedir, _ = filepath.Abs(ret.filedir)
-			ret.filename = filename[index:]
-			os.MkdirAll(filename[0:index], os.ModePerm)
 		}
 		go createLogFile(ret)
 		return ret

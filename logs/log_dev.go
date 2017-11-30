@@ -11,7 +11,7 @@ import (
 //调试追踪
 func TraceCaller(format string, args ...interface{}) {
 	log.SetFlags(log.Llongfile | log.LstdFlags)
-	log.Printf("\x1b[32m[T] "+format+"\x1b[0m", args...)
+	log.Printf("\x1b[46m[T] "+format+"\x1b[0m", args...)
 }
 
 //调试追踪带文件信息

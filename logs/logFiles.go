@@ -1,6 +1,7 @@
 package logs
 
 import (
+	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -23,6 +24,9 @@ func NewLogFiles(filepath string, t time.Duration, level ...Level) *LogFiles {
 		t:        t,
 		logmap:   &sync.Map{},
 		level:    Debug,
+	}
+	if filepath != "" { //创建文件文件夹
+		os.MkdirAll(filepath, 0777)
 	}
 	if len(level) > 0 {
 		ret.level = level[0]
