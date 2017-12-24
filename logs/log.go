@@ -52,8 +52,9 @@ type logger struct {
 }
 
 func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
+	var filedir = "./"
 	if index := strings.LastIndex(filename, "/"); index != -1 { //创建文件夹
-		filedir := filename[0:index] + "/"
+		filedir = filename[0:index] + "/"
 		filedir, _ = filepath.Abs(filedir)
 		os.MkdirAll(filename[0:index], os.ModePerm)
 	}
@@ -63,14 +64,14 @@ func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
 			logger:   log.New(fd, "", log.LstdFlags),
 			file:     fd,
 			filename: filename,
-			filedir:  "./",
+			filedir:  filedir,
 			t:        t,
 			level:    Debug,
 		}
 		if len(level) > 0 {
 			ret.level = level[0]
 		}
-		go createLogFile(ret)
+		go ret.createLogFile()
 		return ret
 	} else {
 		fmt.Printf("%s", e.Error())
@@ -173,7 +174,13 @@ func (lg *logger) Emergency(format string, args ...interface{}) {
 	}
 }
 
-func createLogFile(lg *logger) {
+func (lg *logger) createLogFile() {
+	defer func() {
+		if err := recover(); err != nil {
+			lg.Critical("文件创建线程崩溃:%s", err)
+			go lg.createLogFile()
+		}
+	}()
 	t := time.NewTimer(1)
 	now := time.Now()
 	first := true

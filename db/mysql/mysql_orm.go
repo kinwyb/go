@@ -3,6 +3,7 @@ package mysql
 import (
 	"bytes"
 	"reflect"
+	"strings"
 
 	"github.com/kinwyb/go/db/tags"
 	"github.com/kinwyb/go/err1"
@@ -18,16 +19,26 @@ func SetSQL(obj interface{}) (string, []interface{}) {
 	buf := &bytes.Buffer{}
 	rtype := reflect.TypeOf(vp.Interface())
 	tp, _ := tags.DbTag(rtype)
+	var value,srcValue reflect.Value
 	if tp != nil {
 		for k, v := range tp {
-			d := vp.FieldByName(k)
-			if d.IsNil() {
-				continue
-			} else {
-				buf.WriteString(v)
-				buf.WriteString(" = ?,")
-				retinterface = append(retinterface, tags.GetPtrInterface(d))
+			srcValue = vp
+			for {
+				ks := strings.SplitN(k, ":",2)
+				if len(ks) > 1 {
+					srcValue = srcValue.FieldByName(ks[0])
+					k = ks[1]
+				} else {
+					value = srcValue.FieldByName(k)
+					break
+				}
 			}
+			if (value.Kind() == reflect.Ptr && value.IsNil()) || tags.IsEmpty(value) {
+				continue
+			}
+			buf.WriteString(v)
+			buf.WriteString(" = ?,")
+			retinterface = append(retinterface, tags.GetPtrInterface(value))
 		}
 	}
 	if buf.Len() > 1 {
@@ -52,25 +63,36 @@ func Update(table string, obj interface{}) (string, []interface{}, err1.Error) {
 	buf.WriteString(table)
 	buf.WriteString(" SET ")
 	var paramkey interface{}
+	var value,srcValue reflect.Value
 	if tp != nil {
 		for k, v := range tp {
-			d := vp.FieldByName(k)
-			if d.IsNil() {
-				continue
-			} else if primary == v {
-				paramkey = tags.GetPtrInterface(d)
-			} else {
-				vl := tags.GetPtrInterface(d)
-				_, ok := vl.(string)
-				if ok && vl.(string) == "" {
-					buf.WriteString(v + " = null,")
+			srcValue = vp
+			for {
+				ks := strings.SplitN(k, ":",2)
+				if len(ks) > 1 {
+					srcValue = srcValue.FieldByName(ks[0])
+					k = ks[1]
 				} else {
-					buf.WriteString(v)
-					buf.WriteString(" = ?,")
-					retinterface = append(retinterface, vl)
+					value = srcValue.FieldByName(k)
+					break
 				}
 			}
+			if value.Kind() == reflect.Ptr && value.IsNil() {
+				continue
+			}else if primary == v {
+				paramkey = tags.GetPtrInterface(value)
+				continue
+			}
+			vl := tags.GetPtrInterface(value)
+			if _, ok := vl.(string);ok && vl.(string) == "" {
+				buf.WriteString(v + " = null,")
+			}else{
+				buf.WriteString(v)
+				buf.WriteString(" = ?,")
+				retinterface = append(retinterface, vl)
+			}
 		}
+
 	}
 	if buf.Len() > 1 {
 		buf.Truncate(buf.Len() - 1)

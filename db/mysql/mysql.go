@@ -23,7 +23,8 @@ func init() {
 
 //mysql 操作对象
 type mysql struct {
-	db *sql.DB
+	db     *sql.DB
+	dbname string
 }
 
 func (m *mysql) connect() err1.Error {
@@ -67,6 +68,7 @@ func Connect(host, username, password, db string, other ...string) (db.SQL, erro
 	if err != nil {
 		return nil, err
 	}
+	result.dbname = db                          //记录数据库名称,表名格式化会用到
 	result.db.SetConnMaxLifetime(1 * time.Hour) //一个小时后重置链接
 	return result, nil
 }
@@ -222,4 +224,12 @@ func (m *mysql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	}
 	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
 	return m.QueryRows(sql, args...)
+}
+
+//格式化表名称,不做处理直接返回
+func (m *mysql) Table(tbname string) string {
+	if m == nil || m.dbname == "" {
+		return tbname
+	}
+	return "`" + m.dbname + "`." + tbname
 }

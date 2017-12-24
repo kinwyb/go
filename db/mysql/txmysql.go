@@ -105,3 +105,8 @@ func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
 	return m.QueryRows(sql, args...)
 }
+
+//格式化表名称,不做处理直接返回
+func (m *mysqlTx) Table(tbname string) string {
+	return tbname
+}

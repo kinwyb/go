@@ -1,7 +1,13 @@
 package err1
 
+import (
+	"encoding/json"
+	"fmt"
+)
+
 //Error 错误接口
 type Error interface {
+	json.Marshaler
 	Code() int64    //自定义错误编码
 	Msg() string    //自定义错误消息
 	Err() error     //具体的错误
@@ -46,6 +52,13 @@ func (e *err) Err() error {
 		return nil
 	}
 	return e.e
+}
+
+func (e *err) MarshalJSON() ([]byte, error) {
+	if e == nil {
+		return []byte{}, nil
+	}
+	return []byte(fmt.Sprintf("{\"code\":%d,\"msg\":\"%s\",\"errmsg\":\"%s\"}", e.code, e.msg, e.Error())), nil
 }
 
 //NewError 新建错误

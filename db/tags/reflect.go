@@ -1,10 +1,18 @@
 package tags
 
 import (
+	"bytes"
+	"encoding/gob"
 	"reflect"
 	"sync"
 )
 
+//byteBuffer池
+var byteBufferPool = sync.Pool{
+	New: func() interface{} {
+		return &bytes.Buffer{}
+	},
+}
 var dbTags map[string]map[string]string
 var primaryTags map[string]string
 var fields map[string][]string
@@ -31,6 +39,13 @@ func fieldObj(tp reflect.Type, vname string) {
 		fds[i] = field.Name
 		db = field.Tag.Get("db")
 		if db == "" {
+			if field.Type.Kind() == reflect.Struct {
+				//如果是结构体嵌套的,读取结构体当中的内容
+				tp, _ := DbTag(field.Type)
+				for k,v := range tp {
+					tag[field.Name+":"+k] = v
+				}
+			}
 			continue
 		}
 		tag[field.Name] = db
@@ -121,119 +136,18 @@ func SetMapValue(obj interface{}, m map[string]interface{}) {
 }
 
 //Copy 转换对象值，对象字段名称相同并且类型相同时自动赋值相应字段
-//@param obj interface{} 原数据对象
-//@param obj2 interface{} 待赋值对象
-func Copy(obj interface{}, obj2 interface{}) {
-	vp1 := reflect.ValueOf(obj)
-	if vp1.CanInterface() {
-		vp1 = vp1.Elem()
+//@param dst interface{} 目标对象
+//@param src interface{} 原始对象
+func Copy(dst, src interface{}) {
+	var buf = byteBufferPool.Get().(*bytes.Buffer)
+	if err := gob.NewEncoder(buf).Encode(src); err != nil {
+		buf.Truncate(0)
+		byteBufferPool.Put(buf)
+		return
 	}
-	vp2 := reflect.ValueOf(obj2)
-	if vp2.CanInterface() {
-		vp2 = vp2.Elem()
-	}
-	type1 := reflect.TypeOf(vp1.Interface())
-	tp1 := field(type1, type1.String())
-	if tp1 != nil {
-		for _, k := range tp1 {
-			v1 := GetPtrInterface(vp1.FieldByName(k))
-			if v1 == nil {
-				continue
-			}
-			v2 := vp2.FieldByName(k)
-			if v2.IsValid() {
-				switch v2.Type().String() {
-				case "*string":
-					str, err := String(v1)
-					if str == "" || err != nil {
-						break
-					}
-					v2.Set(reflect.ValueOf(&str))
-				case "*int":
-					switch v1.(type) {
-					case int:
-						it := v1.(int)
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					case int32:
-						it := int(v1.(int32))
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					case int64:
-						it := int(v1.(int64))
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					}
-				case "*int64":
-					switch v1.(type) {
-					case int:
-						it := int64(v1.(int))
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					case int32:
-						it := int64(v1.(int32))
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					case int64:
-						it := v1.(int64)
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					}
-
-				case "*float32":
-					switch v1.(type) {
-					case float32:
-						it := v1.(float32)
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					case float64:
-						it := float32(v1.(float64))
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					}
-				case "*float64":
-					switch v1.(type) {
-					case float32:
-						it := float64(v1.(float32))
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					case float64:
-						it := v1.(float64)
-						if it != 0 {
-							v2.Set(reflect.ValueOf(&it))
-						}
-					}
-				case "string":
-					v2.SetString(StringDefault(v1, ""))
-				case "int", "int32", "int64":
-					switch v1.(type) {
-					case int:
-						v2.SetInt(int64(v1.(int)))
-					case int32:
-						v2.SetInt(int64(v1.(int32)))
-					case int64:
-						v2.SetInt(v1.(int64))
-					}
-				case "float32", "float64":
-					switch v1.(type) {
-					case float32:
-						v2.SetFloat(float64(v1.(float32)))
-					case float64:
-						v2.SetFloat(v1.(float64))
-					}
-				}
-			}
-		}
-	}
+	gob.NewDecoder(bytes.NewBuffer(buf.Bytes())).Decode(dst)
+	buf.Truncate(0)
+	byteBufferPool.Put(buf)
 }
 
 //getPtrInterface 获取指针的原始对象
@@ -249,4 +163,9 @@ func GetPtrInterface(v reflect.Value) interface{} {
 		}
 	}
 	return v.Interface()
+}
+
+//判断值是否为空
+func IsEmpty(v reflect.Value) bool {
+	return GetPtrInterface(v) == reflect.Zero(v.Type()).Interface()
 }

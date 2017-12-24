@@ -89,4 +89,7 @@ type Query interface {
 	//param page *PageObj 分页数据
 	//param args... interface{} SQL参数
 	QueryWithPage(sql string, page *PageObj, args ...interface{}) QueryResult
+
+	//格式化表名称
+	Table(tbname string) string
 }
