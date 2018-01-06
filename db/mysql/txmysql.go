@@ -36,6 +36,11 @@ func (m *mysqlTx) QueryRows(sql string, args ...interface{}) db.QueryResult {
 	return db.NewQueryResult(rows, m.fmterr)
 }
 
+func (m *mysqlTx) Prepare(query string) (*sql.Stmt, err1.Error) {
+	stmt, err := m.tx.Prepare(query)
+	return stmt, FormatError(err)
+}
+
 //QueryResult 查询单条语句,返回结果
 //@param sql string SQL
 //@param args... interface{} SQL参数

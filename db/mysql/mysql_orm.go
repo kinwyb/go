@@ -12,7 +12,7 @@ import (
 //SetSQL 转换成插入语句
 func SetSQL(obj interface{}) (string, []interface{}) {
 	vp := reflect.ValueOf(obj)
-	if vp.CanInterface() {
+	if vp.Kind() == reflect.Interface || vp.Kind() == reflect.Ptr {
 		vp = vp.Elem()
 	}
 	retinterface := make([]interface{}, 0)

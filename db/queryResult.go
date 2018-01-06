@@ -86,10 +86,12 @@ func (r *res) HasError() err1.Error {
 }
 
 func (r *res) IsEmpty() bool {
+	r.passRows()
 	return r.datalength < 1
 }
 
 func (r *res) Empty(f func()) QueryResult {
+	r.passRows()
 	if r.datalength < 1 && f != nil {
 		f()
 	}
@@ -166,6 +168,7 @@ func (r *res) GetMap(index ...int) (ret map[string]interface{}) {
 
 //获取字段列表
 func (r *res) Columns() []string {
+	r.passRows()
 	return r.columns
 }
 

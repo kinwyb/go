@@ -37,7 +37,7 @@ func (m *mysql) connect() err1.Error {
 	return nil
 }
 
-func (m *mysql) FormatError(e error) err1.Error {
+func FormatError(e error) err1.Error {
 	if e == nil {
 		return nil
 	}
@@ -52,6 +52,10 @@ func (m *mysql) FormatError(e error) err1.Error {
 		}
 	}
 	return err1.NewError(code, msg, e)
+}
+
+func (m *mysql) FormatError(e error) err1.Error {
+	return FormatError(e)
 }
 
 //链接mysql数据库，其中other参数代表链接字符串附加的配置信息
@@ -224,6 +228,14 @@ func (m *mysql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	}
 	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
 	return m.QueryRows(sql, args...)
+}
+
+func (m *mysql) Prepare(query string) (*sql.Stmt, err1.Error) {
+	if err := m.connect(); err != nil {
+		return nil, err
+	}
+	stmt, e := m.db.Prepare(query)
+	return stmt, m.FormatError(e)
 }
 
 //格式化表名称,不做处理直接返回
