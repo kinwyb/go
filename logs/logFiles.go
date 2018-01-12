@@ -43,7 +43,7 @@ func (lf *LogFiles) GetLog(filename string) Logger {
 		if lf.filepath == "" {
 			l = NewLogger()
 		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t)
+			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
 		}
 		lf.logmap.Store(filename, l)
 		return l
@@ -69,112 +69,42 @@ func (lf *LogFiles) Level(filename string, level Level) {
 
 //输出
 func (lf *LogFiles) Debug(filename, format string, args ...interface{}) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		v.(Logger).Debug(format, args...)
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(lf.level)
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		}
-		lf.logmap.Store(filename, l)
-		l.Debug(format, args...)
-	}
+	l := lf.GetLog(filename)
+	l.Debug(format, args...)
 }
 
 //输出
 func (lf *LogFiles) Info(filename, format string, args ...interface{}) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		v.(Logger).Info(format, args...)
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(lf.level)
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		}
-		lf.logmap.Store(filename, l)
-		l.Info(format, args...)
-	}
+	l := lf.GetLog(filename)
+	l.Info(format, args...)
 }
 
 //警告
 func (lf *LogFiles) Warning(filename, format string, args ...interface{}) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		v.(Logger).Warning(format, args...)
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(lf.level)
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		}
-		lf.logmap.Store(filename, l)
-		l.Warning(format, args...)
-	}
+	l := lf.GetLog(filename)
+	l.Warning(format, args...)
 }
 
 //错误
 func (lf *LogFiles) Error(filename, format string, args ...interface{}) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		v.(Logger).Error(format, args...)
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(lf.level)
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		}
-		lf.logmap.Store(filename, l)
-		l.Error(format, args...)
-	}
+	l := lf.GetLog(filename)
+	l.Error(format, args...)
 }
 
 //关键
 func (lf *LogFiles) Critical(filename, format string, args ...interface{}) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		v.(Logger).Critical(format, args...)
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(lf.level)
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		}
-		lf.logmap.Store(filename, l)
-		l.Critical(format, args...)
-	}
+	l := lf.GetLog(filename)
+	l.Critical(format, args...)
 }
 
 //警报
 func (lf *LogFiles) Alert(filename, format string, args ...interface{}) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		v.(Logger).Alert(format, args...)
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(lf.level)
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		}
-		lf.logmap.Store(filename, l)
-		l.Alert(format, args...)
-	}
+	l := lf.GetLog(filename)
+	l.Alert(format, args...)
 }
 
 //紧急
 func (lf *LogFiles) Emergency(filename, format string, args ...interface{}) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		v.(Logger).Emergency(format, args...)
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(lf.level)
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		}
-		lf.logmap.Store(filename, l)
-		l.Emergency(format, args...)
-	}
+	l := lf.GetLog(filename)
+	l.Emergency(format, args...)
 }

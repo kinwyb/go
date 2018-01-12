@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/kinwyb/go/exit"
 )
 
 type Level int
@@ -51,14 +53,21 @@ type logger struct {
 	level    Level
 }
 
-func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
-	var filedir = "./"
-	if index := strings.LastIndex(filename, "/"); index != -1 { //创建文件夹
-		filedir = filename[0:index] + "/"
-		filedir, _ = filepath.Abs(filedir)
-		os.MkdirAll(filename[0:index], os.ModePerm)
+func NewFileLogger(file string, t time.Duration, level ...Level) Logger {
+	if file == "" || file == "/" { //如果文件地址异常，默认当前路径下的logs
+		file = "logs"
 	}
-	fd, e := os.OpenFile(filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive)
+	var filedir = "./"
+	var filename = ""
+	if index := strings.LastIndex(file, "/"); index != -1 { //创建文件夹
+		filedir = file[0:index] + "/"
+		filedir, _ = filepath.Abs(filedir)
+		if _, err := os.Stat(filedir); os.IsNotExist(err) { //如果目录不存在创建目录
+			os.MkdirAll(file[0:index], os.ModePerm)
+		}
+		filename = file[index+1:] //取到文件名
+	}
+	fd, e := os.OpenFile(file, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive)
 	if nil == e {
 		ret := &logger{
 			logger:   log.New(fd, "", log.LstdFlags),
@@ -71,12 +80,14 @@ func NewFileLogger(filename string, t time.Duration, level ...Level) Logger {
 		if len(level) > 0 {
 			ret.level = level[0]
 		}
+		exit.Listen(ret.exit) //监听退出
 		go ret.createLogFile()
 		return ret
 	} else {
-		fmt.Printf("%s", e.Error())
+		ret := NewBeegoFileLog(1, filename, 10)
+		ret.Error("创建基础日志驱动失败:%s", e.Error())
+		return ret
 	}
-	return NewBeegoFileLog(1, filename, 10)
 }
 
 func NewLogger(level ...Level) Logger {
@@ -182,43 +193,103 @@ func (lg *logger) createLogFile() {
 		}
 	}()
 	t := time.NewTimer(1)
-	now := time.Now()
 	first := true
 	for {
 		if first { //第一次等待时间跳过
 			<-t.C
-			first = false
 		}
+		now := time.Now()
+		filename := lg.filename
 		switch lg.t {
 		case time.Minute:
-			next := now.Add(time.Minute)
-			next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour(), next.Minute(), 0, 0, next.Location())
-			t.Reset(next.Sub(now))
+			filename = fmt.Sprintf("%s_%04d%02d%02d_%02d%02d",
+				lg.filename, now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute())
+			if first { //第一次调用.调整时间到下一分钟触发
+				next := now.Add(time.Minute)
+				next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour(), next.Minute(), 0, 0, next.Location())
+				waittime := next.Sub(now)
+				t.Reset(waittime)
+				t.Reset(next.Sub(now))
+			} else {
+				t.Reset(time.Minute) //一分钟之后触发
+			}
 		case time.Hour:
-			next := now.Add(time.Hour)
-			next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour(), 0, 0, 0, next.Location())
-			t.Reset(next.Sub(now))
+			filename = fmt.Sprintf("%s_%04d%02d%02d_%02d",
+				lg.filename, now.Year(), now.Month(), now.Day(), now.Hour())
+			if first {
+				next := now.Add(time.Hour)
+				next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour(), 0, 0, 0, next.Location())
+				waittime := next.Sub(now)
+				t.Reset(waittime)
+				t.Reset(next.Sub(now))
+			} else {
+				t.Reset(time.Hour)
+			}
 		default:
-			next := now.Add(time.Hour * 24)
-			next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 0, next.Location())
-			t.Reset(next.Sub(now))
+			filename = fmt.Sprintf("%s_%04d%02d%02d",
+				lg.filename, now.Year(), now.Month(), now.Day())
+			if first {
+				next := now.Add(time.Hour * 24)
+				next = time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 0, next.Location())
+				waittime := next.Sub(now)
+				t.Reset(waittime)
+			} else {
+				t.Reset(time.Hour)
+			}
 		}
+		first = false
 		<-t.C
-		now = time.Now()
-		filename := fmt.Sprintf("%s_%04d%02d%02d_%02d%02d%02d.log", lg.filename, now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second())
-		if err := os.Rename(lg.filedir+"/"+lg.filename, lg.filedir+"/"+filename); err != nil {
-			fmt.Printf("文件命名失败:%s", err.Error())
-			//日志文件重命名失败
-		} else {
+		lg.saveFile(filename, true)
+	}
+}
+
+//退出时更新日志文件名
+func (lg *logger) exit(args ...interface{}) {
+	filename := ""
+	now := time.Now()
+	switch lg.t {
+	case time.Minute:
+		filename = fmt.Sprintf("%s_%04d%02d%02d_%02d%02d",
+			lg.filename, now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute())
+	case time.Hour:
+		filename = fmt.Sprintf("%s_%04d%02d%02d_%02d",
+			lg.filename, now.Year(), now.Month(), now.Day(), now.Hour())
+	default:
+		filename = fmt.Sprintf("%s_%04d%02d%02d",
+			lg.filename, now.Year(), now.Month(), now.Day())
+	}
+	lg.saveFile(filename, false)
+}
+
+//保存文件并是否创建下一日志文件
+func (lg *logger) saveFile(filename string, createNext bool) {
+	now := time.Now()
+	for { //防止日志文件名重复
+		if _, err := os.Stat(filepath.Join(lg.filedir, filename) + ".log"); err == nil { //如果文件已经存在,合并2个文件内容
+			filename = filename + "_" + strings.Replace(now.Format("05.99999"), ".", "", -1)
+			continue
+		}
+		//文件名不存在退出循环
+		break
+	}
+	filename = filepath.Join(lg.filedir, filename) + ".log"
+	if err := os.Rename(filepath.Join(lg.filedir, lg.filename), filename); err != nil {
+		lg.Warning("文件命名失败:%s", err.Error())
+		//日志文件重命名失败
+	} else {
+		if createNext {
 			os.Chmod(lg.filedir+"/"+filename, os.ModePerm) //修改权限
-			if fd, err := os.OpenFile(lg.filedir+"/"+lg.filename, os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive); nil == err {
+			if fd, err := os.OpenFile(filepath.Join(lg.filedir, lg.filename), os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive); nil == err {
 				lg.logger.SetOutput(fd)
 				lg.file.Sync()
 				lg.file.Close()
 				lg.file = fd
 			} else {
-				fmt.Printf("新文件创建失败:%s\n", err.Error())
+				lg.Warning("新文件创建失败:%s\n", err.Error())
 			}
+		} else { //关闭之前的文件
+			lg.file.Sync()
+			lg.file.Close()
 		}
 	}
 }
