@@ -234,7 +234,7 @@ func (lg *logger) createLogFile() {
 				waittime := next.Sub(now)
 				t.Reset(waittime)
 			} else {
-				t.Reset(time.Hour)
+				t.Reset(24 * time.Hour)
 			}
 		}
 		first = false
