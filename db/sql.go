@@ -25,9 +25,6 @@ type SQL interface {
 	//param sql string SQL
 	//param args map[string]interface{} 参数映射
 	ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, err1.Error)
-	//Transaction 事务处理
-	//param t TransactionFunc 事务处理函数
-	Transaction(t TransactionFunc) err1.Error
 	//GetDb 获取数据库对象
 	GetDb() (*sql.DB, err1.Error)
 	//Close 关闭数据库
@@ -43,7 +40,6 @@ type TxSQL interface {
 
 //查询操作集合
 type Query interface {
-
 	//Rows 查询多条数据,结果以[]map[string]interface{}方式返回
 	//返回结果,使用本package中的类型函数进行数据解析
 	//eg:
@@ -93,4 +89,7 @@ type Query interface {
 	Prepare(query string) (*sql.Stmt, err1.Error)
 	//格式化表名称
 	Table(tbname string) string
+	//Transaction 事务处理
+	//param t TransactionFunc 事务处理函数
+	Transaction(t TransactionFunc) err1.Error
 }

@@ -115,3 +115,13 @@ func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 func (m *mysqlTx) Table(tbname string) string {
 	return tbname
 }
+
+//Transaction 事务处理
+//param t TransactionFunc 事务处理函数
+func (m *mysqlTx) Transaction(t db.TransactionFunc) err1.Error {
+	//本身就是事务了，直接调用即可
+	if t != nil {
+		return t(m)
+	}
+	return nil
+}
