@@ -151,19 +151,19 @@ func (r *res) Get(columnName string, index ...int) interface{} {
 
 //读取某行的所有数据.
 //index代表第几行默认第一行，返回的map中key是数据字段名称，value是值
-func (r *res) GetMap(index ...int) (ret map[string]interface{}) {
+func (r *res) GetMap(index ...int) map[string]interface{} {
 	if len(index) < 1 {
 		index = []int{0}
 	}
 	r.passRows()
 	if index[0] >= r.datalength {
-		return
+		return nil
 	}
 	ret = make(map[string]interface{})
 	for i, v := range r.columns {
 		ret[v] = r.data[index[0]][i]
 	}
-	return
+	return ret
 }
 
 //获取字段列表
