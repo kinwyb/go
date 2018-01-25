@@ -51,6 +51,7 @@ type logger struct {
 	file     *os.File
 	t        time.Duration
 	level    Level
+	hasData  bool //是否存在日志记录,空的日志记录不显示
 }
 
 func NewFileLogger(file string, t time.Duration, level ...Level) Logger {
@@ -106,6 +107,7 @@ func (lg *logger) Debug(format string, args ...interface{}) {
 	if lg.level < Debug {
 		return
 	}
+	lg.hasData = true
 	if lg.filedir != "" {
 		lg.logger.Printf("[D] "+format, args...)
 	} else {
@@ -118,6 +120,7 @@ func (lg *logger) Info(format string, args ...interface{}) {
 	if lg.level < Info {
 		return
 	}
+	lg.hasData = true
 	if lg.filedir != "" {
 		lg.logger.Printf("[I] "+format, args...)
 	} else {
@@ -130,6 +133,7 @@ func (lg *logger) Warning(format string, args ...interface{}) {
 	if lg.level < Warn {
 		return
 	}
+	lg.hasData = true
 	if lg.filedir != "" {
 		lg.logger.Printf("[W] "+format, args...)
 	} else {
@@ -142,6 +146,7 @@ func (lg *logger) Error(format string, args ...interface{}) {
 	if lg.level < Error {
 		return
 	}
+	lg.hasData = true
 	if lg.filedir != "" {
 		lg.logger.Printf("[E] "+format, args...)
 	} else {
@@ -154,6 +159,7 @@ func (lg *logger) Critical(format string, args ...interface{}) {
 	if lg.level < Critical {
 		return
 	}
+	lg.hasData = true
 	if lg.filedir != "" {
 		lg.logger.Printf("[C] "+format, args...)
 	} else {
@@ -166,6 +172,7 @@ func (lg *logger) Alert(format string, args ...interface{}) {
 	if lg.level < Alert {
 		return
 	}
+	lg.hasData = true
 	if lg.filedir != "" {
 		lg.logger.Printf("[A] "+format, args...)
 	} else {
@@ -178,6 +185,7 @@ func (lg *logger) Emergency(format string, args ...interface{}) {
 	if lg.level < Emergency {
 		return
 	}
+	lg.hasData = true
 	if lg.filedir != "" {
 		lg.logger.Printf("[EG] "+format, args...)
 	} else {
@@ -263,6 +271,9 @@ func (lg *logger) exit(args ...interface{}) {
 
 //保存文件并是否创建下一日志文件
 func (lg *logger) saveFile(filename string, createNext bool) {
+	if !lg.hasData && createNext { //如果要创建新日志文件并且，日志数据空，直接返回
+		return
+	}
 	now := time.Now()
 	for { //防止日志文件名重复
 		if _, err := os.Stat(filepath.Join(lg.filedir, filename) + ".log"); err == nil { //如果文件已经存在,合并2个文件内容
@@ -280,6 +291,7 @@ func (lg *logger) saveFile(filename string, createNext bool) {
 		if createNext {
 			os.Chmod(lg.filedir+"/"+filename, os.ModePerm) //修改权限
 			if fd, err := os.OpenFile(filepath.Join(lg.filedir, lg.filename), os.O_CREATE|os.O_APPEND|os.O_WRONLY, os.ModeExclusive); nil == err {
+				lg.hasData = false //标记为空数据
 				lg.logger.SetOutput(fd)
 				lg.file.Sync()
 				lg.file.Close()

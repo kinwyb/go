@@ -159,7 +159,7 @@ func (r *res) GetMap(index ...int) map[string]interface{} {
 	if index[0] >= r.datalength {
 		return nil
 	}
-	ret = make(map[string]interface{})
+	ret := make(map[string]interface{})
 	for i, v := range r.columns {
 		ret[v] = r.data[index[0]][i]
 	}
