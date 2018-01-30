@@ -59,6 +59,7 @@ func (s *TcpServer) Listen() {
 			t:   Listen,
 			err: err,
 		}
+		return
 	}
 	go s.handleConn()
 	select {
