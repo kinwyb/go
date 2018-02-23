@@ -19,12 +19,12 @@ func SetSQL(obj interface{}) (string, []interface{}) {
 	buf := &bytes.Buffer{}
 	rtype := reflect.TypeOf(vp.Interface())
 	tp, _ := tags.DbTag(rtype)
-	var value,srcValue reflect.Value
+	var value, srcValue reflect.Value
 	if tp != nil {
 		for k, v := range tp {
 			srcValue = vp
 			for {
-				ks := strings.SplitN(k, ":",2)
+				ks := strings.SplitN(k, ":", 2)
 				if len(ks) > 1 {
 					srcValue = srcValue.FieldByName(ks[0])
 					k = ks[1]
@@ -63,12 +63,12 @@ func Update(table string, obj interface{}) (string, []interface{}, err1.Error) {
 	buf.WriteString(table)
 	buf.WriteString(" SET ")
 	var paramkey interface{}
-	var value,srcValue reflect.Value
+	var value, srcValue reflect.Value
 	if tp != nil {
 		for k, v := range tp {
 			srcValue = vp
 			for {
-				ks := strings.SplitN(k, ":",2)
+				ks := strings.SplitN(k, ":", 2)
 				if len(ks) > 1 {
 					srcValue = srcValue.FieldByName(ks[0])
 					k = ks[1]
@@ -79,14 +79,14 @@ func Update(table string, obj interface{}) (string, []interface{}, err1.Error) {
 			}
 			if value.Kind() == reflect.Ptr && value.IsNil() {
 				continue
-			}else if primary == v {
+			} else if primary == v {
 				paramkey = tags.GetPtrInterface(value)
 				continue
 			}
 			vl := tags.GetPtrInterface(value)
-			if _, ok := vl.(string);ok && vl.(string) == "" {
+			if _, ok := vl.(string); ok && vl.(string) == "" {
 				buf.WriteString(v + " = null,")
-			}else{
+			} else {
 				buf.WriteString(v)
 				buf.WriteString(" = ?,")
 				retinterface = append(retinterface, vl)
@@ -132,4 +132,30 @@ func SelectSQL(obj interface{}, tablename ...string) *bytes.Buffer {
 		buf.WriteString(tablename[0])
 	}
 	return buf
+}
+
+//拼接 where in 条件,field要查询的字段名称以及拼接条件，value表示in中的字段值多个值按char[默认逗号]分割,args表示参数集合
+//返回拼接结果和参数集合，eg: whereIN("AND material_code", "xxx,xxxxx", args, bs)
+func WhereIN(field string, values string, args []interface{}, bs *bytes.Buffer, char ...string) (*bytes.Buffer, []interface{}) {
+	if bs == nil {
+		bs = bytes.NewBufferString("")
+	}
+	if args == nil {
+		args = make([]interface{}, 0)
+	}
+	if values == "" {
+		return bs, args
+	} else if len(char) < 1 {
+		char = []string{","}
+	}
+	bs.WriteString(field)
+	bs.WriteString(" IN (")
+	value := strings.Split(values, char[0])
+	for _, v := range value {
+		bs.WriteString("?,")
+		args = append(args, v)
+	}
+	bs.Truncate(bs.Len() - 1)
+	bs.WriteString(")")
+	return bs, args
 }
