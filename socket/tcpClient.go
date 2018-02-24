@@ -7,6 +7,8 @@ import (
 
 	"errors"
 
+	"fmt"
+
 	"github.com/kinwyb/go/logs"
 )
 
@@ -40,6 +42,7 @@ func NewTcpClient(ctx context.Context, addr string) *TcpClient {
 func (c *TcpClient) connectServer() {
 	defer recoverPainc(c.connectServer)
 	var err error
+	c.protocol.Reset()
 	c.protocol.SetHeartBeat(heartBeatBytes) //设置心跳包内容
 	c.conn, err = net.Dial("tcp", c.addr)
 	if err != nil {
@@ -55,32 +58,24 @@ func (c *TcpClient) connectServer() {
 	c.nctx, c.ncancelFunc = context.WithCancel(c.ctx)
 	c.lg.Info("服务器连接成功...")
 	c.IsClose = c.nctx.Done()
-	go c.readData()
-	go c.heartbeat() //心跳线程...
-	select {
-	case <-c.ctx.Done():
-		if c.ncancelFunc != nil { //关闭连接
-			c.ncancelFunc()
-		}
-	case <-c.nctx.Done():
-	}
-	if c.conn != nil {
-		c.conn.Close()
-	}
+	go c.heartbeat() //心跳...
+	c.readData()     //接受数据
+	c.Close()
 }
 
 //连接服务器返回连接结果是否成功
-func (c *TcpClient) Connect() bool {
+func (c *TcpClient) Connect() <-chan bool {
 	go c.connectServer()
-	return <-c.isConnect
+	return c.isConnect
 }
 
 //读取数据
 func (c *TcpClient) readData() {
-	defer recoverPainc(c.readData)
 	data := make([]byte, 1024)
 	for {
 		select {
+		case <-c.ctx.Done():
+			return
 		case <-c.nctx.Done(): //内部关闭主动退出
 			return
 		default:
@@ -130,6 +125,15 @@ func (c *TcpClient) Error() <-chan Error {
 func (c *TcpClient) Close() {
 	if c.ncancelFunc != nil {
 		c.ncancelFunc()
+		c.ncancelFunc = nil
+	}
+	if c.conn != nil {
+		c.conn.Close()
+		c.conn = nil
+		c.socketError <- Error{
+			t:   Cancel,
+			err: fmt.Errorf("关闭"),
+		}
 	}
 }
 
@@ -151,10 +155,11 @@ func (c *TcpClient) heartbeat() {
 					t:   Send,
 					err: errors.New("心跳发送失败"),
 				}
-				c.ncancelFunc() //关闭连接
-				c.Connect()     //重新连接
+				c.Close()   //关闭之前连接
+				c.Connect() //重新连接
 			}
 		case <-c.ctx.Done():
+			return
 		case <-c.nctx.Done():
 			return
 		}

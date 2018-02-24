@@ -182,4 +182,5 @@ func (s *SClient) Close() {
 			err: fmt.Errorf("%s", s.ID),
 		}
 	}
+	s.protocol.Reset()
 }

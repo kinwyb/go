@@ -78,6 +78,12 @@ func (p *Protocol) Unpack(buffer []byte) {
 	}
 }
 
+//重置
+func (p *Protocol) Reset() {
+	p.dataLength = 0
+	p.byteBuffer.Reset() //清空重新开始
+}
+
 func IntToByte(len int64) []byte {
 	ret := make([]byte, bitlength)
 	binary.PutVarint(ret, len)
