@@ -13,10 +13,11 @@ var heartBeatBytes = []byte{0x11, 0x22, 0x13, 0x24, 0x15, 0x26, 0x17, 0x28, 0x19
 //Protocol 自定义协议
 //解决TCP粘包问题
 type Protocol struct {
-	data       chan []byte   //解析成功的数据
-	byteBuffer *bytes.Buffer //数据存储中心
-	dataLength int64         //当前消息数据长度
-	heartbeat  []byte        //心跳包数据，如果设置而且接收到改数据会被忽略而不被输出
+	data       chan []byte    //解析成功的数据
+	byteBuffer *bytes.Buffer  //数据存储中心
+	dataLength int64          //当前消息数据长度
+	heartbeat  []byte         //心跳包数据，如果设置而且接收到改数据会被忽略而不被输出
+	Handler    PackageHandler //数据编码handler
 }
 
 //NewProtocol 初始化一个Protocol
@@ -34,6 +35,9 @@ func NewProtocol(chanLength ...int) *Protocol {
 
 //Packet 封包
 func (p *Protocol) Packet(message []byte) []byte {
+	if p.Handler != nil {
+		message = p.Handler.Package(message)
+	}
 	return append(IntToByte(int64(len(message))), message...)
 }
 
@@ -63,6 +67,9 @@ func (p *Protocol) Unpack(buffer []byte) {
 		data := make([]byte, p.dataLength+bitlength)
 		p.byteBuffer.Read(data)
 		msg := data[bitlength:]
+		if p.Handler != nil { //解包
+			msg = p.Handler.UnPackage(msg)
+		}
 		if p.heartbeat != nil && bytes.Equal(msg, p.heartbeat) {
 			//对比接收到的内容如果和设置的内容一致忽略该条消息
 			continue

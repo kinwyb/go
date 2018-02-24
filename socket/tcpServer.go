@@ -66,7 +66,7 @@ func (s *TcpServer) Listen() {
 	case <-s.ctx.Done():
 	case <-s.nctx.Done():
 	}
-	s.conn.Close()
+	s.Close() //关闭
 }
 
 //获取客户端连接
@@ -78,6 +78,11 @@ func (s *TcpServer) Accept() <-chan *SClient {
 func (s *TcpServer) Close() {
 	if s.ncancelFunc != nil {
 		s.ncancelFunc()
+		s.ncancelFunc = nil
+	}
+	if s.conn != nil {
+		s.conn.Close()
+		s.conn = nil
 	}
 }
 
@@ -101,17 +106,22 @@ func (s *TcpServer) handleConn() {
 				err: err,
 			}
 		} else {
-			sclient := &SClient{
-				conn:        conn,
-				protocol:    NewProtocol(1000),
-				socketError: s.socketErr,
-				lg:          s.lg,
+			select {
+			case <-s.nctx.Done():
+				return
+			default:
+				sclient := &SClient{
+					conn:        conn,
+					protocol:    NewProtocol(1000),
+					socketError: s.socketErr,
+					lg:          s.lg,
+				}
+				sclient.protocol.SetHeartBeat(heartBeatBytes)
+				sclient.ctx, sclient.cancelFunc = context.WithCancel(s.nctx)
+				sclient.IsClose = sclient.ctx.Done()
+				go sclient.readData()
+				s.client <- sclient
 			}
-			sclient.protocol.SetHeartBeat(heartBeatBytes)
-			sclient.ctx, sclient.cancelFunc = context.WithCancel(s.ctx)
-			sclient.IsClose = sclient.ctx.Done()
-			go sclient.readData()
-			s.client <- sclient
 		}
 	}
 }
@@ -121,17 +131,23 @@ func (s *SClient) readData() {
 	defer recoverPainc(s.readData)
 	data := make([]byte, 1024)
 	for {
-		i, err := s.conn.Read(data)
-		if err != nil {
-			s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
-			s.socketError <- Error{
-				t:   Read,
-				err: fmt.Errorf("%s=>%s", s.ID, err.Error()),
-			}
-			s.Close()
+		select {
+		case <-s.ctx.Done():
+			s.Close() //关闭
 			return
+		default:
+			i, err := s.conn.Read(data)
+			if err != nil {
+				s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
+				s.socketError <- Error{
+					t:   Read,
+					err: fmt.Errorf("%s=>%s", s.ID, err.Error()),
+				}
+				s.Close()
+				return
+			}
+			s.protocol.Unpack(data[0:i])
 		}
-		s.protocol.Unpack(data[0:i])
 	}
 }
 
@@ -156,7 +172,11 @@ func (s *SClient) Read() <-chan []byte {
 func (s *SClient) Close() {
 	if s.cancelFunc != nil {
 		s.cancelFunc()
+		s.cancelFunc = nil
+	}
+	if s.conn != nil {
 		s.conn.Close()
+		s.conn = nil
 		s.socketError <- Error{
 			t:   Cancel,
 			err: fmt.Errorf("%s", s.ID),

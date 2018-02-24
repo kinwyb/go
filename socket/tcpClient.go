@@ -59,6 +59,9 @@ func (c *TcpClient) connectServer() {
 	go c.heartbeat() //心跳线程...
 	select {
 	case <-c.ctx.Done():
+		if c.ncancelFunc != nil { //关闭连接
+			c.ncancelFunc()
+		}
 	case <-c.nctx.Done():
 	}
 	if c.conn != nil {
@@ -77,17 +80,22 @@ func (c *TcpClient) readData() {
 	defer recoverPainc(c.readData)
 	data := make([]byte, 1024)
 	for {
-		i, err := c.conn.Read(data)
-		if err != nil {
-			c.lg.Error("数据读取错误:" + err.Error())
-			c.socketError <- Error{
-				t:   Read,
-				err: err,
-			}
-			c.Close()
+		select {
+		case <-c.nctx.Done(): //内部关闭主动退出
 			return
+		default:
+			i, err := c.conn.Read(data)
+			if err != nil {
+				c.lg.Error("数据读取错误:" + err.Error())
+				c.socketError <- Error{
+					t:   Read,
+					err: err,
+				}
+				c.Close()
+				return
+			}
+			c.protocol.Unpack(data[0:i])
 		}
-		c.protocol.Unpack(data[0:i])
 	}
 }
 
