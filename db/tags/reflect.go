@@ -42,7 +42,7 @@ func fieldObj(tp reflect.Type, vname string) {
 			if field.Type.Kind() == reflect.Struct {
 				//如果是结构体嵌套的,读取结构体当中的内容
 				tp, _ := DbTag(field.Type)
-				for k,v := range tp {
+				for k, v := range tp {
 					tag[field.Name+":"+k] = v
 				}
 			}
@@ -92,14 +92,23 @@ func field(tp reflect.Type, vname string) []string {
 
 //SetMapValue 设置对象值
 func SetMapValue(obj interface{}, m map[string]interface{}) {
-	vp := reflect.ValueOf(obj)
-	if vp.CanInterface() {
-		vp = vp.Elem()
+	var vp reflect.Value
+	if v, ok := obj.(reflect.Value); ok {
+		vp = v
+	} else {
+		vp = reflect.ValueOf(obj)
+		if vp.CanInterface() {
+			vp = vp.Elem()
+		}
 	}
 	rtype := reflect.TypeOf(vp.Interface())
 	tp := field(rtype, rtype.String())
 	for _, v := range tp {
 		d := vp.FieldByName(v)
+		if d.Type().Kind() == reflect.Struct { //如果是结构体则再次解析里面内容
+			SetMapValue(d, m)
+			continue
+		}
 		switch d.Type().String() {
 		case "*string":
 			str, err := String(m[v])

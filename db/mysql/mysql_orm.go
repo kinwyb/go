@@ -120,6 +120,12 @@ func SelectSQL(obj interface{}, tablename ...string) *bytes.Buffer {
 		for k, v := range tp {
 			buf.WriteString(v)
 			buf.WriteString(" `")
+			if strings.Contains(k, ":") {
+				ks := strings.Split(k, ":")
+				if len(ks) > 1 && ks[1] != "" {
+					k = ks[1]
+				}
+			}
 			buf.WriteString(k)
 			buf.WriteString("`,")
 		}

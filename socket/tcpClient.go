@@ -23,6 +23,7 @@ type TcpClient struct {
 	lg          logs.Logger        //日志
 	IsClose     <-chan struct{}    //关闭channel
 	isConnect   chan bool          //是否连接
+	doClose     bool               //关闭操作
 }
 
 //新客户端对象,注意输出channel error
@@ -42,6 +43,7 @@ func NewTcpClient(ctx context.Context, addr string) *TcpClient {
 func (c *TcpClient) connectServer() {
 	defer recoverPainc(c.connectServer)
 	var err error
+	c.doClose = false
 	c.protocol.Reset()
 	c.protocol.SetHeartBeat(heartBeatBytes) //设置心跳包内容
 	c.conn, err = net.Dial("tcp", c.addr)
@@ -73,24 +75,19 @@ func (c *TcpClient) Connect() <-chan bool {
 func (c *TcpClient) readData() {
 	data := make([]byte, 1024)
 	for {
-		select {
-		case <-c.ctx.Done():
+		i, err := c.conn.Read(data)
+		if c.doClose {
 			return
-		case <-c.nctx.Done(): //内部关闭主动退出
-			return
-		default:
-			i, err := c.conn.Read(data)
-			if err != nil {
-				c.lg.Error("数据读取错误:" + err.Error())
-				c.socketError <- Error{
-					t:   Read,
-					err: err,
-				}
-				c.Close()
-				return
+		} else if err != nil {
+			c.lg.Error("数据读取错误:" + err.Error())
+			c.socketError <- Error{
+				t:   Read,
+				err: err,
 			}
-			c.protocol.Unpack(data[0:i])
+			c.Close()
+			return
 		}
+		c.protocol.Unpack(data[0:i])
 	}
 }
 
@@ -127,6 +124,7 @@ func (c *TcpClient) Close() {
 		c.ncancelFunc()
 		c.ncancelFunc = nil
 	}
+	c.doClose = true
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil

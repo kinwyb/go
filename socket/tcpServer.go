@@ -20,6 +20,7 @@ type TcpServer struct {
 	lg          logs.Logger
 	port        int
 	client      chan *SClient
+	doClose     bool
 	IsClose     <-chan struct{} //关闭channel
 }
 
@@ -33,6 +34,7 @@ type SClient struct {
 	socketError chan<- Error
 	IsClose     <-chan struct{} //关闭channel
 	ID          string          //客户端唯一标示
+	doClose     bool            //关闭
 }
 
 //新建一个服务端,port为监听端口
@@ -50,6 +52,7 @@ func NewTcpServer(ctx context.Context, port int) *TcpServer {
 //启动监听该方法会阻塞
 func (s *TcpServer) Listen() {
 	var err error
+	s.doClose = false
 	s.nctx, s.ncancelFunc = context.WithCancel(s.ctx)
 	s.IsClose = s.nctx.Done()
 	s.conn, err = net.Listen("tcp", fmt.Sprintf(":%d", s.port))
@@ -80,6 +83,7 @@ func (s *TcpServer) Close() {
 		s.ncancelFunc()
 		s.ncancelFunc = nil
 	}
+	s.doClose = true
 	if s.conn != nil {
 		s.conn.Close()
 		s.conn = nil
@@ -100,28 +104,27 @@ func (s *TcpServer) Error() <-chan Error {
 func (s *TcpServer) handleConn() {
 	for {
 		if conn, err := s.conn.Accept(); err != nil {
+			if s.doClose { //关闭
+				return
+			}
 			s.lg.Error("监听请求连接失败:" + err.Error())
 			s.socketErr <- Error{
 				t:   Listen,
 				err: err,
 			}
 		} else {
-			select {
-			case <-s.nctx.Done():
-				return
-			default:
-				sclient := &SClient{
-					conn:        conn,
-					protocol:    NewProtocol(1000),
-					socketError: s.socketErr,
-					lg:          s.lg,
-				}
-				sclient.protocol.SetHeartBeat(heartBeatBytes)
-				sclient.ctx, sclient.cancelFunc = context.WithCancel(s.nctx)
-				sclient.IsClose = sclient.ctx.Done()
-				go sclient.readData()
-				s.client <- sclient
+			sclient := &SClient{
+				conn:        conn,
+				protocol:    NewProtocol(1000),
+				socketError: s.socketErr,
+				lg:          s.lg,
 			}
+			sclient.protocol.SetHeartBeat(heartBeatBytes)
+			sclient.ctx, sclient.cancelFunc = context.WithCancel(s.nctx)
+			sclient.IsClose = sclient.ctx.Done()
+			sclient.doClose = false
+			go sclient.readData()
+			s.client <- sclient
 		}
 	}
 }
@@ -131,23 +134,19 @@ func (s *SClient) readData() {
 	defer recoverPainc(s.readData)
 	data := make([]byte, 1024)
 	for {
-		select {
-		case <-s.ctx.Done():
-			s.Close() //关闭
+		i, err := s.conn.Read(data)
+		if s.doClose {
 			return
-		default:
-			i, err := s.conn.Read(data)
-			if err != nil {
-				s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
-				s.socketError <- Error{
-					t:   Read,
-					err: fmt.Errorf("%s=>%s", s.ID, err.Error()),
-				}
-				s.Close()
-				return
+		} else if err != nil {
+			s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
+			s.socketError <- Error{
+				t:   Read,
+				err: fmt.Errorf("%s=>%s", s.ID, err.Error()),
 			}
-			s.protocol.Unpack(data[0:i])
+			s.Close()
+			return
 		}
+		s.protocol.Unpack(data[0:i])
 	}
 }
 
@@ -174,6 +173,7 @@ func (s *SClient) Close() {
 		s.cancelFunc()
 		s.cancelFunc = nil
 	}
+	s.doClose = true
 	if s.conn != nil {
 		s.conn.Close()
 		s.conn = nil
