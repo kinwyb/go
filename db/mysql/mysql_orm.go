@@ -50,8 +50,13 @@ func SetSQL(obj interface{}) (string, []interface{}) {
 //Update 更新数据
 func Update(table string, obj interface{}) (string, []interface{}, err1.Error) {
 	vp := reflect.ValueOf(obj)
-	if vp.CanInterface() {
-		vp = vp.Elem()
+	if v, ok := obj.(reflect.Value); ok {
+		vp = v
+	} else {
+		vp = reflect.ValueOf(obj)
+		if vp.CanInterface() {
+			vp = vp.Elem()
+		}
 	}
 	retinterface := make([]interface{}, 0)
 	rtype := reflect.TypeOf(vp.Interface())
@@ -122,8 +127,9 @@ func SelectSQL(obj interface{}, tablename ...string) *bytes.Buffer {
 			buf.WriteString(" `")
 			if strings.Contains(k, ":") {
 				ks := strings.Split(k, ":")
+				l := len(ks) - 1
 				if len(ks) > 1 && ks[1] != "" {
-					k = ks[1]
+					k = ks[l]
 				}
 			}
 			buf.WriteString(k)

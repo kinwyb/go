@@ -1,10 +1,13 @@
 package logs
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
+
+	"github.com/astaxie/beego/logs"
 )
 
 //一个文件日志集合
@@ -39,14 +42,21 @@ func (lf *LogFiles) GetLog(filename string) Logger {
 	if v, ok := lf.logmap.Load(filename); ok {
 		return v.(Logger)
 	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger()
-		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
+		l := logs.NewLogger(3000)
+		if lf.filepath != "" {
+			l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+string(filepath.Separator)+filename+`","level":`+
+				fmt.Sprintf("%d", lf.level)+`,"maxlines":0,"maxsize":0,"daily":true,"maxdays":10}`)
 		}
 		lf.logmap.Store(filename, l)
 		return l
+		//var l Logger
+		//if lf.filepath == "" {
+		//	l = NewLogger()
+		//} else {
+		//	l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
+		//}
+		//lf.logmap.Store(filename, l)
+		//return l
 	}
 }
 
