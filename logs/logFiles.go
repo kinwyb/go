@@ -71,7 +71,12 @@ func (lf *LogFiles) Level(filename string, level Level) {
 		if lf.filepath == "" {
 			l = NewLogger(level)
 		} else {
-			l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, level)
+			//l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, level)
+			l := logs.NewLogger(3000)
+			if lf.filepath != "" {
+				l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+string(filepath.Separator)+filename+`","level":`+
+					fmt.Sprintf("%d", lf.level)+`,"maxlines":0,"maxsize":0,"daily":true,"maxdays":10}`)
+			}
 		}
 		lf.logmap.Store(filename, l)
 	}
