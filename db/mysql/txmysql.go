@@ -107,6 +107,9 @@ func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 	if page.Page-1 > 0 {
 		currentpage = page.Page - 1
 	}
+	if count < 1 {
+		return db.NewQueryResult(nil, nil)
+	}
 	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
 	return m.QueryRows(sql, args...)
 }
