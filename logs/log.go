@@ -13,7 +13,7 @@ import (
 	"github.com/kinwyb/go/exit"
 )
 
-type Level int
+type Level = int
 
 const (
 	Emergency Level = iota
@@ -21,6 +21,7 @@ const (
 	Critical
 	Error
 	Warn
+	Notice
 	Info
 	Debug
 )
@@ -33,6 +34,8 @@ type Logger interface {
 	Info(format string, args ...interface{})
 	//警告
 	Warning(format string, args ...interface{})
+	//注意
+	Notice(format string, args ...interface{})
 	//错误
 	Error(format string, args ...interface{})
 	//关键
@@ -125,6 +128,19 @@ func (lg *logger) Info(format string, args ...interface{}) {
 		lg.logger.Printf("[I] "+format, args...)
 	} else {
 		lg.logger.Printf("\x1b[36m[I] "+format+"\x1b[0m", args...)
+	}
+}
+
+//警告
+func (lg *logger) Notice(format string, args ...interface{}) {
+	if lg.level < Notice {
+		return
+	}
+	lg.hasData = true
+	if lg.filedir != "" {
+		lg.logger.Printf("[N] "+format, args...)
+	} else {
+		lg.logger.Printf("\x1b[32m[N] "+format+"\x1b[0m", args...)
 	}
 }
 
