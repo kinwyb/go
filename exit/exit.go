@@ -38,8 +38,7 @@ func Listen(fun Func, args ...interface{}) {
 			os.Exit(0)
 		}()
 		//监听指定信号 ctrl+c kill
-		signal.Notify(exitSigle, syscall.SIGHUP, syscall.SIGINT,
-			syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGUSR1, syscall.SIGUSR2)
+		signal.Notify(exitSigle, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	}
 	waitGroup.Add(1)
 	go func(fun Func, args ...interface{}) {
