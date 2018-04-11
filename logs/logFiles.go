@@ -3,7 +3,6 @@ package logs
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -34,6 +33,7 @@ func NewLogFiles(filepath string, t time.Duration, level ...Level) *LogFiles {
 	if len(level) > 0 {
 		ret.level = level[0]
 	}
+	ret.level = Debug
 	return ret
 }
 
@@ -44,7 +44,7 @@ func (lf *LogFiles) GetLog(filename string) Logger {
 	} else {
 		l := logs.NewLogger(3000)
 		if lf.filepath != "" {
-			l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+string(filepath.Separator)+filename+`","level":`+
+			l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+"/"+filename+`","level":`+
 				fmt.Sprintf("%d", lf.level)+`,"maxlines":0,"maxsize":0,"daily":true,"maxdays":10}`)
 		}
 		lf.logmap.Store(filename, l)
@@ -74,7 +74,7 @@ func (lf *LogFiles) Level(filename string, level Level) {
 			//l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, level)
 			l := logs.NewLogger(3000)
 			if lf.filepath != "" {
-				l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+string(filepath.Separator)+filename+`","level":`+
+				l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+"/"+filename+`","level":`+
 					fmt.Sprintf("%d", lf.level)+`,"maxlines":0,"maxsize":0,"daily":true,"maxdays":10}`)
 			}
 		}
