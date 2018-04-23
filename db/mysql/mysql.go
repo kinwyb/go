@@ -183,6 +183,13 @@ func (m *mysql) Transaction(t db.TransactionFunc) err1.Error {
 	}
 	tx, err := m.db.Begin()
 	if err == nil {
+		defer func() {
+			if err := recover();err != nil {
+				//发生异常,先回滚事务再继续抛出异常
+				tx.Rollback() //回滚
+				panic(err)
+			}
+		}()
 		if t != nil {
 			e := t(&mysqlTx{tx: tx, fmterr: m})
 			if e != nil {
