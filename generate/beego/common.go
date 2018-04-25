@@ -1,11 +1,12 @@
 package beego
 
 import (
-	"CloudFactory/API/application/generate"
 	"fmt"
 	"go/ast"
 	"go/token"
 	"strings"
+
+	"github.com/kinwyb/go/generate"
 )
 
 type Param struct {

@@ -1,12 +1,13 @@
 package beego
 
 import (
-	"ASID/generate"
 	"bytes"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"testing"
+
+	"github.com/kinwyb/go/generate"
 )
 
 func TestLay_TransformAST(t *testing.T) {

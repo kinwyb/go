@@ -1,7 +1,6 @@
 package beego
 
 import (
-	"CloudFactory/API/application/generate"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -9,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/kinwyb/go/generate"
 )
 
 type lay struct{}

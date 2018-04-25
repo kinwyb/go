@@ -1,10 +1,11 @@
 package rpcx
 
 import (
-	"ASID/generate"
 	"go/ast"
 	"go/token"
 	"strings"
+
+	"github.com/kinwyb/go/generate"
 )
 
 //生成服务代码

@@ -1,16 +1,17 @@
 package main
 
 import (
-	"CloudFactory/API/application/generate"
 	"bytes"
 	"os"
 	"path/filepath"
+
+	"github.com/kinwyb/go/generate"
 
 	"io/ioutil"
 
 	"fmt"
 
-	_ "CloudFactory/API/application/generate/beego"
+	_ "github.com/kinwyb/go/generate/beego"
 
 	"github.com/spf13/cobra"
 )

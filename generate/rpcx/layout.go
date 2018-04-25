@@ -1,9 +1,10 @@
 package rpcx
 
 import (
-	"ASID/generate"
 	"fmt"
 	"go/ast"
+
+	"github.com/kinwyb/go/generate"
 )
 
 type lay struct{}

@@ -1,9 +1,10 @@
 package rpcx
 
 import (
-	"ASID/generate"
 	"bytes"
 	"testing"
+
+	"github.com/kinwyb/go/generate"
 )
 
 func TestLay_TransformAST(t *testing.T) {
