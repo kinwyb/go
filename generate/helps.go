@@ -125,6 +125,10 @@ func baseName(t ast.Expr) string {
 	switch tt := t.(type) {
 	default:
 		panic(fmt.Sprintf("don't know how to choose a base name for %T (%[1]v)", tt))
+	case *ast.MapType:
+		return "map"
+	case *ast.InterfaceType:
+		return "inf"
 	case *ast.ArrayType:
 		return "slice"
 	case *ast.Ident:

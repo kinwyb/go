@@ -8,10 +8,11 @@ import (
 	"path/filepath"
 
 	"github.com/kinwyb/go/generate"
+	_ "github.com/kinwyb/go/generate/rpcx"
 	"github.com/spf13/cobra"
 )
 
-//./generate rpcx -i /Users/heldiam/Developer/GO/mysrc/zhifangw.cn/src/CloudFactory/API/models/endPoints -o /Users/heldiam/Developer/GO/mysrc/zhifangw.cn/src/CloudFactory/API/application/web/controllers
+//./generate rpcx -i /Users/heldiam/Developer/GO/mysrc/zhifangw.cn/src/CloudFactory/API/models/endPoints -o /Users/heldiam/Developer/GO/mysrc/zhifangw.cn/src/CloudFactory/API/application/rpcx
 
 var cmdRpcx = &cobra.Command{
 	Use:   "rpcx",

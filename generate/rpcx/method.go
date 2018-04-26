@@ -9,10 +9,13 @@ import (
 )
 
 //生成服务代码
-func addMethodService(root *ast.File, ifc *generate.Iface, m *generate.Method) {
+func addMethodService(root *ast.File, ifc *generate.Iface, m *generate.Method, structname string) {
 	notImpl := generate.FetchFuncDecl("Example")
 	notImpl.Name = m.Name
 	notImpl.Recv = generate.FieldList(ifc.Reciever())
+	notImpl.Recv.List[0].Type = &ast.StarExpr{
+		X: &ast.Ident{Name: structname},
+	}
 	//生成请求参数
 	parms := &ast.FieldList{}
 	_, resultTp := m.ResponseStructName()

@@ -21,7 +21,7 @@ func (i Iface) StubStructDecl(root *ast.File) ast.Decl {
 	ds := StructDecl(i.StubName, &ast.FieldList{
 		List: []*ast.Field{{
 			Names: []*ast.Ident{ast.NewIdent("serv")},
-			Type:  ast.NewIdent("services." + i.StubName.Name),
+			Type:  ast.NewIdent("endPoints." + i.StubName.Name),
 		}},
 	})
 	if root != nil {

@@ -4,6 +4,12 @@ import (
 	"fmt"
 	"go/ast"
 
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
+	"strings"
+
 	"github.com/kinwyb/go/generate"
 )
 
@@ -12,22 +18,42 @@ type lay struct{}
 func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error {
 	//遍历所有接口
 	for _, v := range ctx.Interfaces {
-		service := generate.NewAstFile("serv")
+		service := generate.NewAstFile("rpcx")
 		ctx.ImportDecls(service) //import
-		v.StubStructDecl(service)
+		name := v.StubName.Name
+		name = strings.TrimPrefix(name, "I")
+		name = strings.TrimSuffix(name, "EndPoint")
+		name = name + "Rpcx"
+		ds := generate.StructDecl(ast.NewIdent(name), &ast.FieldList{
+			List: []*ast.Field{{
+				Names: []*ast.Ident{ast.NewIdent("serv")},
+				Type:  ast.NewIdent("endPoints." + v.StubName.Name),
+			}},
+		})
+		service.Decls = append(service.Decls, ds)
 		for _, meth := range v.Methods {
 			meth.Prefix = ctx.Prefix
 			//生成请求结构
 			addRequestStruct(service, &meth)
 			//生成返回结果结构
 			addResponseStruct(service, &meth)
-			addMethodService(service, &v, &meth)
+			addMethodService(service, &v, &meth, name)
 		}
 		filedata, err := generate.FormatNode("", service)
 		if err != nil {
 			panic("err")
 		}
-		fmt.Printf("%s", filedata)
+		if len(filedir) < 1 || filedir[0] == "" {
+			fmt.Printf("%s", filedata)
+		} else {
+			path := filepath.Join(filedir[0], name+".go")
+			err := ioutil.WriteFile(path, filedata.Bytes(), os.ModePerm)
+			if err != nil {
+				fmt.Printf("[%s]文件保存错误:%s\n", name, err.Error())
+			} else {
+				fmt.Printf("[%s]文件保存成功\n", name)
+			}
+		}
 	}
 
 	return nil
