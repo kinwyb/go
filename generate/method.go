@@ -98,16 +98,12 @@ func (m Method) RequestStruct() ast.Decl {
 
 func (m Method) ResponseStruct() ast.Decl {
 	m.resolveStructNames()
-	if len(m.Results) == 1 {
-		return nil
-	}
-	ret, _ := m.ResponseStructName()
-	return StructDecl(ret, m.ResponseStructFields())
+	return StructDecl(m.ResponseStructName(), m.ResponseStructFields())
 }
 
 func (m Method) RequestStructName() (*ast.Ident, ast.Expr) {
 	if len(m.Params) == 1 {
-		return nil, m.Params[0].Exported().Type
+		return ast.NewIdent(m.Params[0].Name.Name), m.Params[0].Exported().Type
 	}
 	ret := ast.NewIdent(m.Prefix + export(m.Name.Name) + "Request")
 	return ret, &ast.StarExpr{
@@ -121,14 +117,8 @@ func (m Method) requestStructFields() *ast.FieldList {
 	}, m.nonContextParams()...)
 }
 
-func (m Method) ResponseStructName() (*ast.Ident, ast.Expr) {
-	if len(m.Results) == 1 {
-		return nil, m.Results[0].Exported().Type
-	}
-	ret := ast.NewIdent(m.Prefix + export(m.Name.Name) + "Response")
-	return ret, &ast.StarExpr{
-		X: ret,
-	}
+func (m Method) ResponseStructName() *ast.Ident {
+	return ast.NewIdent(m.Prefix + export(m.Name.Name) + "Response")
 }
 
 func (m Method) ResponseStructFields() *ast.FieldList {
@@ -137,18 +127,18 @@ func (m Method) ResponseStructFields() *ast.FieldList {
 	}, m.Results...)
 }
 
-func (m Method) WrapResult(results []ast.Expr) ast.Expr {
+func (m Method) WrapRequest() ast.Expr {
 	var kvs []ast.Expr
 	m.resolveStructNames()
-	for i, a := range m.Results {
+	for _, a := range m.Params {
 		kvs = append(kvs, &ast.KeyValueExpr{
 			Key:   ast.NewIdent(export(a.AsField.Name)),
-			Value: results[i],
+			Value: ast.NewIdent(export(a.Name.Name)),
 		})
 	}
-	_, tp := m.ResponseStructName()
+	name, _ := m.RequestStructName()
 	return &ast.CompositeLit{
-		Type: tp,
+		Type: name,
 		Elts: kvs,
 	}
 }

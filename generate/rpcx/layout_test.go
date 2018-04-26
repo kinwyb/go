@@ -11,6 +11,10 @@ func TestLay_TransformAST(t *testing.T) {
 	generate.ParseFile(bytes.NewReader([]byte(tp)), &lay{})
 }
 
+func TestLayClient_TransformAST(t *testing.T) {
+	generate.ParseFile(bytes.NewReader([]byte(tp)), &layclient{})
+}
+
 var tp = `
 package gokit
 
