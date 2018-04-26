@@ -1,6 +1,8 @@
 package generate
 
-import "go/ast"
+import (
+	"go/ast"
+)
 
 type Method struct {
 	Prefix          string
@@ -87,16 +89,30 @@ func (m Method) resolveStructNames() {
 
 func (m Method) RequestStruct() ast.Decl {
 	m.resolveStructNames()
-	return StructDecl(m.RequestStructName(), m.requestStructFields())
+	if len(m.Params) == 1 {
+		return nil
+	}
+	name, _ := m.RequestStructName()
+	return StructDecl(name, m.requestStructFields())
 }
 
 func (m Method) ResponseStruct() ast.Decl {
 	m.resolveStructNames()
-	return StructDecl(m.ResponseStructName(), m.ResponseStructFields())
+	if len(m.Results) == 1 {
+		return nil
+	}
+	ret, _ := m.ResponseStructName()
+	return StructDecl(ret, m.ResponseStructFields())
 }
 
-func (m Method) RequestStructName() *ast.Ident {
-	return ast.NewIdent(m.Prefix + export(m.Name.Name) + "Request")
+func (m Method) RequestStructName() (*ast.Ident, ast.Expr) {
+	if len(m.Params) == 1 {
+		return nil, m.Params[0].Exported().Type
+	}
+	ret := ast.NewIdent(m.Prefix + export(m.Name.Name) + "Request")
+	return ret, &ast.StarExpr{
+		X: ret,
+	}
 }
 
 func (m Method) requestStructFields() *ast.FieldList {
@@ -105,8 +121,14 @@ func (m Method) requestStructFields() *ast.FieldList {
 	}, m.nonContextParams()...)
 }
 
-func (m Method) ResponseStructName() *ast.Ident {
-	return ast.NewIdent(m.Prefix + export(m.Name.Name) + "Response")
+func (m Method) ResponseStructName() (*ast.Ident, ast.Expr) {
+	if len(m.Results) == 1 {
+		return nil, m.Results[0].Exported().Type
+	}
+	ret := ast.NewIdent(m.Prefix + export(m.Name.Name) + "Response")
+	return ret, &ast.StarExpr{
+		X: ret,
+	}
 }
 
 func (m Method) ResponseStructFields() *ast.FieldList {
@@ -116,17 +138,17 @@ func (m Method) ResponseStructFields() *ast.FieldList {
 }
 
 func (m Method) WrapResult(results []ast.Expr) ast.Expr {
-	kvs := []ast.Expr{}
+	var kvs []ast.Expr
 	m.resolveStructNames()
-
 	for i, a := range m.Results {
 		kvs = append(kvs, &ast.KeyValueExpr{
 			Key:   ast.NewIdent(export(a.AsField.Name)),
 			Value: results[i],
 		})
 	}
+	_, tp := m.ResponseStructName()
 	return &ast.CompositeLit{
-		Type: m.ResponseStructName(),
+		Type: tp,
 		Elts: kvs,
 	}
 }

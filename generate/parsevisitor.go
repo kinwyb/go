@@ -179,7 +179,14 @@ func (v *methodVisitor) Visit(n ast.Node) ast.Visitor {
 	case nil:
 		v.depth--
 		if v.depth == 0 && v.isMethod && v.name != nil {
-			*v.list = append(*v.list, Method{Name: v.name, Params: *v.params, Results: *v.results, Comments: v.comments})
+			method := Method{Name: v.name, Comments: v.comments}
+			if v.results != nil {
+				method.Results = *v.results
+			}
+			if v.params != nil {
+				method.Params = *v.params
+			}
+			*v.list = append(*v.list, method)
 			v.comments = v.comments[:0]
 		}
 		return nil

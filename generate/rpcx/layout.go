@@ -22,9 +22,6 @@ func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error
 			//生成返回结果结构
 			addResponseStruct(service, &meth)
 			addMethodService(service, &v, &meth)
-			//addRequestStruct(endpoints, meth)
-			//addResponseStruct(endpoints, meth)
-			//addEndpointMaker(endpoints, iface, meth)
 		}
 		filedata, err := generate.FormatNode("", service)
 		if err != nil {
@@ -37,9 +34,17 @@ func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error
 }
 
 func addRequestStruct(root *ast.File, meth *generate.Method) {
-	root.Decls = append(root.Decls, meth.RequestStruct())
+	result := meth.RequestStruct()
+	if result == nil {
+		return
+	}
+	root.Decls = append(root.Decls, result)
 }
 
 func addResponseStruct(root *ast.File, meth *generate.Method) {
-	root.Decls = append(root.Decls, meth.ResponseStruct())
+	result := meth.ResponseStruct()
+	if result == nil {
+		return
+	}
+	root.Decls = append(root.Decls, result)
 }

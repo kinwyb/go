@@ -30,7 +30,7 @@ type ColorService interface {
 	//更新颜色档案,code要更新的颜色档案编码,name名称,modifier 修改人
 	//state 更新的状态
 	Update(code, name, modifier string,
-		state objs.EnableState, dbtag string) err1.Error
+		state objs.EnableState, dbtag string) (string,err1.Error)
 
 	//更新颜色档案名称,code要更新的颜色档案编码,name名称,modifier 修改人
 	UpdateName(code, name, modifier string, dbtag string) err1.Error
@@ -40,7 +40,7 @@ type ColorService interface {
 		state objs.EnableState, dbtag string) err1.Error
 
 	//根据编码查询颜色档案 code要查询的编码
-	QueryByCode(code string, dbtag string) *objs.ArchivesColor
+	QueryByCode(code string) *objs.ArchivesColor
 
 	//根据名称模糊查询颜色档案 name要查询的名称
 	QueryByLikeName(name string, dbtag string) []*objs.ArchivesColor
