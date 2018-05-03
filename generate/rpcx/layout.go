@@ -3,6 +3,7 @@ package rpcx
 import (
 	"fmt"
 	"go/ast"
+	"go/token"
 
 	"io/ioutil"
 	"os"
@@ -72,6 +73,7 @@ func (l *layclient) TransformAST(ctx *generate.SourceContext, filedir ...string)
 		name = strings.TrimPrefix(name, "I")
 		name = strings.TrimSuffix(name, "EndPoint")
 		name = name + "RpcxClient"
+		addClientNewStruct(service, name)
 		ds := generate.StructDecl(ast.NewIdent(name), &ast.FieldList{
 			List: []*ast.Field{{
 				Names: []*ast.Ident{ast.NewIdent("client")},
@@ -121,4 +123,95 @@ func addResponseStruct(root *ast.File, meth *generate.Method) {
 		return
 	}
 	root.Decls = append(root.Decls, result)
+}
+
+func addClientNewStruct(root *ast.File, name string) {
+	newfunc := &ast.FuncDecl{
+		Name: ast.NewIdent("New" + name),
+		Body: &ast.BlockStmt{
+			List: []ast.Stmt{
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{
+						ast.NewIdent("xclient"),
+					},
+					Tok: token.DEFINE,
+					Rhs: []ast.Expr{
+						&ast.CallExpr{
+							Fun: &ast.Ident{
+								Name: "client.NewXClient", //表达式内容
+							},
+							Args: []ast.Expr{ //表达式参数集合
+								&ast.BasicLit{
+									Kind:  token.TYPE,
+									Value: "servicePath",
+								},
+								&ast.BasicLit{
+									Kind:  token.TYPE,
+									Value: "client.Failover",
+								},
+								&ast.BasicLit{
+									Kind:  token.TYPE,
+									Value: "client.RoundRobin",
+								},
+								&ast.BasicLit{
+									Kind:  token.TYPE,
+									Value: "discovery",
+								},
+								&ast.BasicLit{
+									Kind:  token.TYPE,
+									Value: "client.DefaultOption",
+								},
+							},
+						},
+					},
+				},
+				&ast.ReturnStmt{
+					Results: []ast.Expr{
+						&ast.UnaryExpr{
+							Op: token.AND,
+							X: &ast.CompositeLit{
+								Type: ast.NewIdent(name),
+								Elts: []ast.Expr{
+									&ast.KeyValueExpr{
+										Key:   ast.NewIdent("client"),
+										Value: ast.NewIdent("xclient"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Type: &ast.FuncType{
+			Params: &ast.FieldList{
+				List: []*ast.Field{
+					{
+						Type: ast.NewIdent("string"),
+						Names: []*ast.Ident{
+							ast.NewIdent("servicePath"),
+						},
+					},
+					{
+						Type: ast.NewIdent("client.ServiceDiscovery"),
+						Names: []*ast.Ident{
+							ast.NewIdent("discovery"),
+						},
+					},
+				},
+			},
+			Results: &ast.FieldList{
+				List: []*ast.Field{
+					{
+						Type: &ast.StarExpr{
+							X: ast.NewIdent(name),
+						},
+					},
+				},
+			},
+		},
+	}
+	if newfunc != nil {
+		root.Decls = append(root.Decls, newfunc)
+	}
 }
