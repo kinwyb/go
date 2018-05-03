@@ -132,6 +132,25 @@ func addClientNewStruct(root *ast.File, name string) {
 			List: []ast.Stmt{
 				&ast.AssignStmt{
 					Lhs: []ast.Expr{
+						ast.NewIdent("discovery"),
+					},
+					Tok: token.ASSIGN,
+					Rhs: []ast.Expr{
+						&ast.CallExpr{
+							Fun: &ast.Ident{
+								Name: "discovery.Clone", //表达式内容
+							},
+							Args: []ast.Expr{ //表达式参数集合
+								&ast.BasicLit{
+									Kind:  token.TYPE,
+									Value: "servicePath",
+								},
+							},
+						},
+					},
+				},
+				&ast.AssignStmt{
+					Lhs: []ast.Expr{
 						ast.NewIdent("xclient"),
 					},
 					Tok: token.DEFINE,
