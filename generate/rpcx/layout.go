@@ -35,7 +35,7 @@ func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error
 		})
 		service.Decls = append(service.Decls, ds)
 		for _, meth := range v.Methods {
-			meth.Prefix = ctx.Prefix
+			meth.Prefix = ctx.Prefix + name
 			//生成请求结构
 			addRequestStruct(service, &meth)
 			//生成返回结果结构
@@ -44,7 +44,7 @@ func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error
 		}
 		filedata, err := generate.FormatNode("", service)
 		if err != nil {
-			panic("err")
+			panic(err)
 		}
 		if len(filedir) < 1 || filedir[0] == "" {
 			fmt.Printf("%s", filedata)
@@ -80,7 +80,7 @@ func (l *layclient) TransformAST(ctx *generate.SourceContext, filedir ...string)
 		})
 		service.Decls = append(service.Decls, ds)
 		for _, meth := range v.Methods {
-			meth.Prefix = ctx.Prefix
+			meth.Prefix = ctx.Prefix + name
 			//生成请求结构
 			addRequestStruct(service, &meth)
 			//生成返回结果结构
