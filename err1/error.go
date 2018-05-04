@@ -2,7 +2,9 @@ package err1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strconv"
 )
 
 //Error 错误接口
@@ -24,12 +26,10 @@ type err struct {
 
 //Error 错误
 func (e *err) Error() string {
-	if e.msg != "" {
-		return e.msg
-	} else if e.e != nil {
+	if e.e != nil {
 		return e.e.Error()
 	}
-	return " none"
+	return e.msg
 }
 
 func (e *err) Caller() string {
@@ -59,6 +59,28 @@ func (e *err) MarshalJSON() ([]byte, error) {
 		return []byte{}, nil
 	}
 	return []byte(fmt.Sprintf("{\"code\":%d,\"msg\":\"%s\",\"errmsg\":\"%s\"}", e.code, e.msg, e.Error())), nil
+}
+
+func (e *err) UnmarshalJSON(b []byte) error {
+	mp := map[string]interface{}{}
+	err := json.Unmarshal(b, &mp)
+	if err != nil {
+		return err
+	}
+	e.code, _ = strconv.ParseInt(fmt.Sprintf("%d", mp["code"]), 10, 64)
+	e.msg = mp["msg"].(string)
+	if mp["errmsg"].(string) != "" && mp["errmsg"].(string) != e.msg {
+		e.e = errors.New(mp["errmsg"].(string))
+	}
+	return nil
+}
+
+func (e *err) MarshalMsgpack() ([]byte, error) {
+	return e.MarshalJSON()
+}
+
+func (e *err) UnmarshalMsgpack(b []byte) error {
+	return e.UnmarshalJSON(b)
 }
 
 //NewError 新建错误
