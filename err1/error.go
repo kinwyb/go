@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+
+	"github.com/vmihailenco/msgpack"
 )
 
 //Error 错误接口
@@ -15,6 +17,16 @@ type Error interface {
 	Err() error     //具体的错误
 	Caller() string //返回调用堆栈信息
 	Error() string  //继承全局的error接口
+}
+
+var msgregister = false
+
+func MsgPackRegister(id int8) {
+	if msgregister {
+		return
+	}
+	msgpack.RegisterExt(id, &err{})
+	msgregister = true
 }
 
 //err 公用错误对象
