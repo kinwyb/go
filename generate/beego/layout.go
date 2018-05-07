@@ -38,7 +38,7 @@ func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error
 				},
 				{
 					Names: []*ast.Ident{ast.NewIdent("Serv")},
-					Type:  ast.NewIdent("endPoints." + v.StubName.Name),
+					Type:  ast.NewIdent(ctx.Pkg.Name + "." + v.StubName.Name),
 				},
 			},
 		}, v.Comments)

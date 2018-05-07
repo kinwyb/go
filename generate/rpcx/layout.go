@@ -9,8 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"strings"
-
 	"github.com/kinwyb/go/generate"
 )
 
@@ -29,13 +27,13 @@ func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error
 		service := generate.NewAstFile(packagename)
 		ctx.ImportDecls(service) //import
 		name := v.StubName.Name
-		name = strings.TrimPrefix(name, "I")
-		name = strings.TrimSuffix(name, "EndPoint")
+		//name = strings.TrimPrefix(name, "I")
+		//name = strings.TrimSuffix(name, "EndPoint")
 		name = name + "Rpcx"
 		ds := generate.StructDecl(ast.NewIdent(name), &ast.FieldList{
 			List: []*ast.Field{{
 				Names: []*ast.Ident{ast.NewIdent("serv")},
-				Type:  ast.NewIdent("endPoints." + v.StubName.Name),
+				Type:  ast.NewIdent(ctx.Pkg.Name + "." + v.StubName.Name),
 			}},
 		})
 		service.Decls = append(service.Decls, ds)
@@ -78,8 +76,8 @@ func (l *layclient) TransformAST(ctx *generate.SourceContext, filedir ...string)
 		service := generate.NewAstFile(packagename)
 		ctx.ImportDecls(service) //import
 		name := v.StubName.Name
-		name = strings.TrimPrefix(name, "I")
-		name = strings.TrimSuffix(name, "EndPoint")
+		//name = strings.TrimPrefix(name, "I")
+		//name = strings.TrimSuffix(name, "EndPoint")
 		name = name + "RpcxClient"
 		addClientNewStruct(service, name)
 		ds := generate.StructDecl(ast.NewIdent(name), &ast.FieldList{
