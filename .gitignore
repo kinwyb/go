@@ -1,1 +1,3 @@
 .idea
+generate/cmd/cmd
+generate/cmd/cmd.exe
