@@ -7,6 +7,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"runtime"
 	"sort"
 	"strings"
 
@@ -14,6 +15,8 @@ import (
 
 	"golang.org/x/tools/imports"
 )
+
+var ostype = runtime.GOOS
 
 type sortableDecls []ast.Decl
 
@@ -47,6 +50,9 @@ func FormatNode(fname string, node ast.Node) (*bytes.Buffer, error) {
 	err := format.Node(buf, outfset, node)
 	if err != nil {
 		return nil, err
+	}
+	if ostype == "windows" && fname == "" {
+		fname = "\\tmp.go"
 	}
 	imps, err := imports.Process(fname, buf.Bytes(), nil)
 	if err != nil {
