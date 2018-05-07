@@ -20,9 +20,13 @@ type layclient struct{}
 
 //服务端
 func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error {
+	packagename := "rpcx"
+	if len(filedir) > 0 {
+		_, packagename = filepath.Split(filedir[0])
+	}
 	//遍历所有接口
 	for _, v := range ctx.Interfaces {
-		service := generate.NewAstFile("rpcx")
+		service := generate.NewAstFile(packagename)
 		ctx.ImportDecls(service) //import
 		name := v.StubName.Name
 		name = strings.TrimPrefix(name, "I")
@@ -65,9 +69,13 @@ func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error
 
 //客户端
 func (l *layclient) TransformAST(ctx *generate.SourceContext, filedir ...string) error {
+	packagename := "rpcxclient"
+	if len(filedir) > 0 {
+		_, packagename = filepath.Split(filedir[0])
+	}
 	//遍历所有接口
 	for _, v := range ctx.Interfaces {
-		service := generate.NewAstFile("rpcx")
+		service := generate.NewAstFile(packagename)
 		ctx.ImportDecls(service) //import
 		name := v.StubName.Name
 		name = strings.TrimPrefix(name, "I")

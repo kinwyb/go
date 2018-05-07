@@ -19,9 +19,13 @@ func init() {
 }
 
 func (l *lay) TransformAST(ctx *generate.SourceContext, filedir ...string) error {
+	packagename := "controllers"
+	if len(filedir) > 0 && filedir[0] != "" {
+		_, packagename = filepath.Split(filedir[0])
+	}
 	//遍历所有接口
 	for _, v := range ctx.Interfaces {
-		service := generate.NewAstFile("controllers")
+		service := generate.NewAstFile(packagename)
 		ctx.ImportDecls(service) //import
 		name := v.StubName.Name
 		name = strings.TrimPrefix(name, "I")
