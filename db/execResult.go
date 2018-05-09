@@ -6,12 +6,14 @@ import (
 	"github.com/kinwyb/go/err1"
 )
 
+var SQLEmptyChange = err1.NewError(101, "数据无变化")
+
 type ExecResult interface {
 	sql.Result
 	//出错时回调参数方法
 	Error(func(err1.Error)) ExecResult
 	//是否出错
-	HasError() err1.Error
+	HasError(reportZeroChange ...bool) err1.Error
 }
 
 //获取一个操作结果对象
@@ -41,6 +43,15 @@ func (r *rus) Error(f func(err1.Error)) ExecResult {
 	return r
 }
 
-func (r *rus) HasError() err1.Error {
-	return r.err
+func (r *rus) HasError(reportZeroChange ...bool) err1.Error {
+	if r.err != nil {
+		return r.err
+	} else if len(reportZeroChange) < 1 {
+		reportZeroChange = []bool{false}
+	}
+	changrow, _ := r.RowsAffected()
+	if changrow == 0 && reportZeroChange[0] {
+		return SQLEmptyChange
+	}
+	return nil
 }
