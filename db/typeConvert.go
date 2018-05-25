@@ -163,6 +163,18 @@ func Float64(reply interface{}) (float64, error) {
 		return n, err
 	case float64:
 		return float64(reply), nil
+	case float32:
+		return float64(reply), nil
+	case int:
+		return float64(reply), nil
+	case int64:
+		return float64(reply), nil
+	case int32:
+		return float64(reply), nil
+	case int16:
+		return float64(reply), nil
+	case int8:
+		return float64(reply), nil
 	case nil:
 		return 0, ErrNil
 	case err1.Error:
@@ -200,6 +212,10 @@ func String(reply interface{}) (string, error) {
 		return strconv.FormatInt(reply, 10), nil
 	case int32:
 		return strconv.FormatInt(int64(reply), 10), nil
+	case float64:
+		return strconv.FormatFloat(reply, 'f', -1, 64), nil
+	case float32:
+		return strconv.FormatFloat(float64(reply), 'f', -1, 32), nil
 	case nil:
 		return "", ErrNil
 	case err1.Error:
