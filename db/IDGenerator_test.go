@@ -47,6 +47,13 @@ func BenchmarkIDGenerator_NextString(b *testing.B) {
 	}
 }
 
+func BenchmarkIDGenerator_Next(b *testing.B) {
+	idWorker := NewIDGenerator(10)
+	for i := 0; i < b.N; i++ {
+		idWorker.next()
+	}
+}
+
 func BenchmarkIDGenerator_NextStringRunParallel(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		idWorker := NewIDGenerator(1)

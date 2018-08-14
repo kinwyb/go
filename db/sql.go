@@ -89,6 +89,8 @@ type Query interface {
 	Prepare(query string) (*sql.Stmt, err1.Error)
 	//格式化表名称
 	Table(tbname string) string
+	//数据库名称
+	DataBaseName() string
 	//Transaction 事务处理
 	//param t TransactionFunc 事务处理函数
 	Transaction(t TransactionFunc) err1.Error

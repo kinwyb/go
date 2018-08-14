@@ -10,6 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"io"
+
+	"errors"
+
 	"github.com/kinwyb/go/exit"
 )
 
@@ -28,6 +32,7 @@ const (
 
 //Logger 日志接口
 type Logger interface {
+	io.Writer
 	//输出
 	Debug(format string, args ...interface{})
 	//输出
@@ -320,6 +325,14 @@ func (lg *logger) saveFile(filename string, createNext bool) {
 			lg.file.Close()
 		}
 	}
+}
+
+//写入
+func (lg *logger) Write(bs []byte) (int, error) {
+	if lg.file != nil {
+		return lg.file.Write(bs)
+	}
+	return 0, errors.New("文件未打开")
 }
 
 //WriteLog 写入日志

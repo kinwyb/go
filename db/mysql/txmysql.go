@@ -12,6 +12,7 @@ import (
 //MySQLTx 事务操作
 type mysqlTx struct {
 	tx     *sql.Tx
+	dbname string
 	fmterr db.FormatError
 }
 
@@ -116,7 +117,10 @@ func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 
 //格式化表名称,不做处理直接返回
 func (m *mysqlTx) Table(tbname string) string {
-	return tbname
+	if m == nil || m.dbname == "" {
+		return tbname
+	}
+	return "`" + m.dbname + "`." + tbname
 }
 
 //Transaction 事务处理
@@ -127,4 +131,9 @@ func (m *mysqlTx) Transaction(t db.TransactionFunc) err1.Error {
 		return t(m)
 	}
 	return nil
+}
+
+//数据库名称
+func (m *mysqlTx) DataBaseName() string {
+	return m.dbname
 }
