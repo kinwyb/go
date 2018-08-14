@@ -93,5 +93,6 @@ type Query interface {
 	DataBaseName() string
 	//Transaction 事务处理
 	//param t TransactionFunc 事务处理函数
-	Transaction(t TransactionFunc) err1.Error
+	//param new bool 是否创建新事物,默认false,如果设置true不管事务是否存在都会创建新事物
+	Transaction(t TransactionFunc, new ...bool) err1.Error
 }

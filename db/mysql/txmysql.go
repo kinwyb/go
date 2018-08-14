@@ -12,7 +12,7 @@ import (
 //MySQLTx 事务操作
 type mysqlTx struct {
 	tx     *sql.Tx
-	dbname string
+	mysql  *mysql
 	fmterr db.FormatError
 }
 
@@ -117,17 +117,21 @@ func (m *mysqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 
 //格式化表名称,不做处理直接返回
 func (m *mysqlTx) Table(tbname string) string {
-	if m == nil || m.dbname == "" {
+	if m == nil || m.mysql == nil || m.mysql.dbname == "" {
 		return tbname
 	}
-	return "`" + m.dbname + "`." + tbname
+	return "`" + m.mysql.dbname + "`." + tbname
 }
 
 //Transaction 事务处理
 //param t TransactionFunc 事务处理函数
-func (m *mysqlTx) Transaction(t db.TransactionFunc) err1.Error {
-	//本身就是事务了，直接调用即可
+func (m *mysqlTx) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
 	if t != nil {
+		if len(new) > 0 && new[0] && m.mysql != nil {
+			//要求新事物返回新事务
+			return m.mysql.Transaction(t)
+		}
+		//本身就是事务了，直接调用即可
 		return t(m)
 	}
 	return nil
@@ -135,5 +139,8 @@ func (m *mysqlTx) Transaction(t db.TransactionFunc) err1.Error {
 
 //数据库名称
 func (m *mysqlTx) DataBaseName() string {
-	return m.dbname
+	if m.mysql != nil {
+		return m.mysql.dbname
+	}
+	return ""
 }

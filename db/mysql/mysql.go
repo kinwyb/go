@@ -177,7 +177,7 @@ func (m *mysql) ParseSQL(sql string, args map[string]interface{}) (string, []int
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mysql) Transaction(t db.TransactionFunc) err1.Error {
+func (m *mysql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
 	if err := m.connect(); err != nil {
 		return err
 	}
@@ -191,7 +191,7 @@ func (m *mysql) Transaction(t db.TransactionFunc) err1.Error {
 			}
 		}()
 		if t != nil {
-			e := t(&mysqlTx{tx: tx, dbname: m.dbname, fmterr: m})
+			e := t(&mysqlTx{tx: tx, mysql: m, fmterr: m})
 			if e != nil {
 				tx.Rollback()
 				return e
