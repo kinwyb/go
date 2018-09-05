@@ -1,93 +1,106 @@
 package db
 
 import (
-	"strconv"
-	"strings"
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-//IDGenerator 唯一序号生成对象
+//  twitter SnowFlake 算法生成唯一ID
+
+//SnowFlakeID算法ID生成器
 type IDGenerator struct {
-	workerID      int           //机器ID
-	sequence      uint32        //当前时间戳计数器
-	workerIDBits  uint          //机器码字节数,默认4字节保存机器ID
-	maxWorkerID   int64         //最大机器ID
-	sequenceBits  uint          //计数器字节数,默认10个字节保存计数器
-	workerIDShift uint          //机器码数据左移位数
-	sequenceMask  int           //一微秒内可以产生的计数器值,达到该值后要等到下一微妙再生成
-	lastTimestamp int64         //上次生成序号的时间戳
-	timeString    string        //上一次生成序列号的时间
-	timeDuration  time.Duration //时间单位
-	lock          *sync.Mutex   //同步锁
+	workerId           int64 //当前的workerId
+	workerIdAfterShift int64 //移位后的workerId，可直接跟时间戳、序号取位或操作
+	startTimestamp     int64 //起始时间戳
+	lastMsTimestamp    int64 //上一次用的时间戳
+	curSequence        int64 //当前的序号
+
+	timeBitSize     uint8 //时间戳占的位数，默认为41位，最大不超过60位
+	workerIdBitSize uint8 //workerId占的位数，默认10，最大不超过60位
+	sequenceBitSize uint8 //序号占的位数，默认12，最大不超过60位
+	lock            sync.Locker
+
+	maxSequence        int64 //最后序列号最大值，初始化时计算出来的
+	workerIdLeftShift  uint8 //生成的workerId只取最低的几位，这里要左移，给序列号腾位，初始化时计算出来的
+	timestampLeftShift uint8 //生成的时间戳左移几位，给workId、序列号腾位，初始化时计算出来的
 }
 
-//NewIDGenerator 生成一个IDGenerator对象
-//@param workerID 机器编码会保存在结果中
-//@param params[0] 指定多少位来计入单个时间点中可以生成的数量[默认是10]
-func NewIDGenerator(workerID int, params ...int64) *IDGenerator {
-	var sequenceBits uint
-	if len(params) > 1 {
-		sequenceBits = uint(params[0])
-	} else {
-		if len(params) > 0 {
-			sequenceBits = uint(params[0])
-		} else {
-			sequenceBits = 10
-		}
+//实例化毫秒15位一个ID生成器
+func NewIDGenerator(workID int64) *IDGenerator {
+	ret := &IDGenerator{
+		lock:               &sync.Mutex{},
+		workerId:           workID,
+		lastMsTimestamp:    0,
+		curSequence:        0,
+		timeBitSize:        41, //默认的时间戳占的位数
+		workerIdBitSize:    10, //默认的workerId占的位数
+		sequenceBitSize:    12, //默认的序号占的位数
+		maxSequence:        0,  //最大的序号值，初始化的时计算出来的
+		workerIdLeftShift:  0,  //worker id左移位数
+		timestampLeftShift: 0,
 	}
-	idw := &IDGenerator{
-		workerID:     workerID,
-		sequenceBits: sequenceBits,
-		sequence:     0,
-		workerIDBits: 10,
-		timeDuration: time.Millisecond,
-		lock:         &sync.Mutex{},
-		timeString:   strings.Replace(time.Now().Format("20060102150405.00000"), ".", "", -1),
-	}
-	idw.maxWorkerID = -1 ^ -1<<idw.workerIDBits
-	idw.sequenceMask = -1 ^ -1<<idw.sequenceBits
-	idw.workerIDShift = idw.sequenceBits
-	idw.lastTimestamp = -1
-	return idw
+	ret.workerIdAfterShift = workID & 0x3FF << ret.sequenceBitSize //确保生成的id只有10位
+	ret.maxSequence = 0xFFF                                        //最大生成值
+	ret.workerIdLeftShift = ret.sequenceBitSize
+	ret.timestampLeftShift = ret.sequenceBitSize + ret.workerIdBitSize
+	ret.lastMsTimestamp = ret.genNextTs(ret.lastMsTimestamp)
+	return ret
 }
 
-//next 生成一个唯一ID
-func (d *IDGenerator) next() int64 {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	t := time.Now()
-	timestamp := t.UnixNano() / int64(d.timeDuration)
-	if d.lastTimestamp == timestamp {
-		atomic.AddUint32(&d.sequence, 1)
-		d.sequence = uint32(int(d.sequence) & d.sequenceMask)
-		if d.sequence == 0 {
-			d.tilNext()
-		}
-	} else {
-		d.sequence = 0
-		d.lastTimestamp = timestamp
-		d.timeString = strings.Replace(t.Format("20060102150405.00000"), ".", "", -1)
-	}
-	i := int64(d.workerID<<d.workerIDShift) | int64(d.sequence)
-	return i
+func (sfg *IDGenerator) SetStartTimestamp(startTimestamp int64) {
+	sfg.startTimestamp = startTimestamp
+	sfg.lastMsTimestamp = 0
 }
 
-//NextString 下一个唯一字符串
-func (d *IDGenerator) NextString() string {
-	return d.timeString + strconv.FormatInt(d.next(), 10)
+//生成时间戳位数,
+func (sfg *IDGenerator) genTs() int64 {
+	rawTs := time.Now().UnixNano()/int64(time.Millisecond) - sfg.startTimestamp
+	diff := 64 - sfg.timeBitSize
+	// &0x7FFFFFFFFFFFFFFF 确保最高位为0,防止出现负数
+	ret := (rawTs << diff & 0x7FFFFFFFFFFFFFFF) >> diff
+	return ret << sfg.timestampLeftShift
 }
 
-//获取下一时间值
-func (d *IDGenerator) tilNext() int64 {
+//生成下一个时间戳，如果时间戳的位数较小，且序号用完时此处等待的时间会较长
+func (sfg *IDGenerator) genNextTs(last int64) int64 {
 	for {
-		t := time.Now()
-		timestamp := t.UnixNano() / int64(d.timeDuration)
-		if timestamp > d.lastTimestamp {
-			d.lastTimestamp = timestamp
-			d.timeString = strings.Replace(t.Format("20060102150405.00000"), ".", "", -1)
-			return timestamp
+		cur := sfg.genTs()
+		if cur > last {
+			return cur
 		}
 	}
+}
+
+//生成下一个ID
+func (sfg *IDGenerator) NextId() (int64, error) {
+	sfg.lock.Lock()
+	defer sfg.lock.Unlock()
+	//先判断当前的时间戳，如果比上一次的还小，说明出问题了
+	curTs := sfg.genTs()
+	if curTs < sfg.lastMsTimestamp {
+		return 0, fmt.Errorf("系统时钟异常")
+	}
+	//如果跟上次的时间戳相同，则增加序号
+	if curTs == sfg.lastMsTimestamp {
+		curSequence := atomic.AddInt64(&sfg.curSequence, 1)
+		curSequence = curSequence & sfg.maxSequence
+		//序号又归0即用完了，重新生成时间戳
+		if curSequence != 0 {
+			ret := curTs | sfg.workerIdAfterShift | curSequence
+			return ret, nil
+		}
+		curTs = sfg.genNextTs(sfg.lastMsTimestamp)
+	}
+	// 如果两个的时间戳不一样，则归0序号
+	atomic.StoreInt64(&sfg.curSequence, 0)
+	atomic.StoreInt64(&sfg.lastMsTimestamp, curTs)
+	ret := curTs | sfg.workerIdAfterShift
+	return ret, nil
+}
+
+func (sfg *IDGenerator) NextString() (string, error) {
+	id, err := sfg.NextId()
+	return fmt.Sprintf("%d", id), err
 }
