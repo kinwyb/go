@@ -100,7 +100,7 @@ func (sfg *IDGenerator) NextId() (int64, error) {
 	return ret, nil
 }
 
-func (sfg *IDGenerator) NextString() (string, error) {
-	id, err := sfg.NextId()
-	return fmt.Sprintf("%d", id), err
+func (sfg *IDGenerator) NextString() string {
+	id, _ := sfg.NextId()
+	return fmt.Sprintf("%d", id)
 }
