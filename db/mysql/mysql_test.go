@@ -7,7 +7,6 @@ import (
 
 	"github.com/kinwyb/go/db"
 	"github.com/kinwyb/go/err1"
-	"github.com/kinwyb/golang/gosql"
 	"github.com/smartystreets/goconvey/convey"
 )
 
@@ -78,7 +77,7 @@ func Benchmark_Mysql(b *testing.B) {
 //上一版本查询测试: github.com/kinwyb/golang/gosql
 func BenchmarkConnect(b *testing.B) {
 	b.StopTimer()
-	conn, err := gosql.Open("mysql://lcfgly:wang93426@tcp(api.zhifangw.cn:3306)/rfid?loc=Local&multiStatements=true")
+	conn, err := Connect("api.zhifangw.cn:3306", "lcfgly", "wang93426", "rfid", "loc=Local&multiStatements=true")
 	if err != nil {
 		b.Fatalf("错误:%s", err.Error())
 		return
@@ -86,8 +85,8 @@ func BenchmarkConnect(b *testing.B) {
 	b.N = 10
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		_, err := conn.Rows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
-		if err != nil {
+		result := conn.QueryRows("SELECT id,company_name,company_user FROM rfid_company_user ORDER BY id DESC LIMIT 5 ")
+		if result.HasError() != nil {
 			b.Fatalf("错误:%s\n", err.Error())
 		}
 	}
