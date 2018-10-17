@@ -54,6 +54,7 @@ func NewQueryResult(rows *sql.Rows, fmterr FormatError) QueryResult {
 		} else {
 			ret.rows = rows
 		}
+		ret.passRows() //避免忘记关闭查询结果
 	}
 	return ret
 }
