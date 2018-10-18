@@ -12,11 +12,12 @@ import (
 //Error 错误接口
 type Error interface {
 	json.Marshaler
-	Code() int64    //自定义错误编码
-	Msg() string    //自定义错误消息
-	Err() error     //具体的错误
-	Caller() string //返回调用堆栈信息
-	Error() string  //继承全局的error接口
+	Code() int64                      //自定义错误编码
+	Msg() string                      //自定义错误消息
+	Err() error                       //具体的错误
+	Caller() string                   //返回调用堆栈信息
+	Error() string                    //继承全局的error接口
+	Format(args ...interface{}) Error //格式化错误
 }
 
 var msgregister = false
@@ -93,6 +94,10 @@ func (e *err) MarshalMsgpack() ([]byte, error) {
 
 func (e *err) UnmarshalMsgpack(b []byte) error {
 	return e.UnmarshalJSON(b)
+}
+
+func (e *err) Format(args ...interface{}) Error {
+	return NewError(e.code, fmt.Sprintf(e.msg, args...))
 }
 
 //NewError 新建错误
