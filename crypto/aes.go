@@ -10,20 +10,33 @@ import (
 	"encoding/hex"
 )
 
+type Padding int
+
+const (
+	Padding5 Padding = iota + 1
+	Padding7
+)
+
 //AESCBCEncrypt AesCBC加密PKCS5
 //
 //@param origData []byte 加密的字节数组
 //
 //@param key []byte 密钥字节数组
-func AESCBCEncrypt(origData []byte, key []byte) ([]byte, error) {
-	srckey := MD5(key)
-	block, err := aes.NewCipher(srckey)
+func AESCBCEncrypt(origData []byte, key []byte, padding ...Padding) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 	blockSize := block.BlockSize()
-	origData = PKCS5Padding(origData, blockSize)
-	blockMode := cipher.NewCBCEncrypter(block, srckey[:blockSize])
+	paddingFunc := PKCS5Padding
+	if len(padding) > 0 {
+		switch padding[0] {
+		case Padding7:
+			paddingFunc = PKCS7Padding
+		}
+	}
+	origData = paddingFunc(origData, blockSize)
+	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
 	cypted := make([]byte, len(origData))
 	blockMode.CryptBlocks(cypted, origData)
 	return []byte(hex.EncodeToString(cypted)), nil
@@ -34,14 +47,20 @@ func AESCBCEncrypt(origData []byte, key []byte) ([]byte, error) {
 //@param origData []byte 加密的字节数组
 //
 //@param key []byte 密钥字节数组
-func AESECBEncrypt(origData []byte, key []byte) ([]byte, error) {
-	srckey := MD5(key)
-	block, err := aes.NewCipher(srckey)
+func AESECBEncrypt(origData []byte, key []byte, padding ...Padding) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
+	paddingFunc := PKCS5Padding
+	if len(padding) > 0 {
+		switch padding[0] {
+		case Padding7:
+			paddingFunc = PKCS7Padding
+		}
+	}
 	blockSize := block.BlockSize()
-	origData = PKCS5Padding(origData, blockSize)
+	origData = paddingFunc(origData, blockSize)
 	blockMode := newECBEncrypter(block)
 	cypted := make([]byte, len(origData))
 	blockMode.CryptBlocks(cypted, origData)
@@ -53,21 +72,23 @@ func AESECBEncrypt(origData []byte, key []byte) ([]byte, error) {
 //@param origData []byte 解密的字节数组
 //
 //@param key []byte 密钥字节数组
-func AESCBCDecrypt(cypted []byte, key []byte) ([]byte, error) {
-	cypted, err := hex.DecodeString(string(cypted))
+func AESCBCDecrypt(cypted []byte, key []byte, padding ...Padding) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	srckey := MD5(key)
-	block, err := aes.NewCipher(srckey)
-	if err != nil {
-		return nil, err
+	UnPaddingFunc := PKCS5UnPadding
+	if len(padding) > 0 {
+		switch padding[0] {
+		case Padding7:
+			UnPaddingFunc = PKCS7UnPadding
+		}
 	}
 	blockSize := block.BlockSize()
-	blockMode := cipher.NewCBCDecrypter(block, srckey[:blockSize])
+	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
 	origData := make([]byte, len(cypted))
 	blockMode.CryptBlocks(origData, cypted)
-	origData = PKCS5UnPadding(origData)
+	origData = UnPaddingFunc(origData)
 	return origData, nil
 }
 
@@ -76,20 +97,22 @@ func AESCBCDecrypt(cypted []byte, key []byte) ([]byte, error) {
 //@param origData []byte 解密的字节数组
 //
 //@param key []byte 密钥字节数组
-func AESECBDecrypt(cypted []byte, key []byte) ([]byte, error) {
-	cypted, err := hex.DecodeString(string(cypted))
+func AESECBDecrypt(cypted []byte, key []byte, padding ...Padding) ([]byte, error) {
+	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
-	srckey := MD5(key)
-	block, err := aes.NewCipher(srckey)
-	if err != nil {
-		return nil, err
+	UnPaddingFunc := PKCS5UnPadding
+	if len(padding) > 0 {
+		switch padding[0] {
+		case Padding7:
+			UnPaddingFunc = PKCS7UnPadding
+		}
 	}
 	blockMode := newECBDecrypter(block)
 	origData := make([]byte, len(cypted))
 	blockMode.CryptBlocks(origData, cypted)
-	origData = PKCS5UnPadding(origData)
+	origData = UnPaddingFunc(origData)
 	return origData, nil
 }
 
@@ -104,6 +127,18 @@ func PKCS5Padding(ciphertext []byte, blockSize int) []byte {
 func PKCS5UnPadding(origData []byte) []byte {
 	length := len(origData)
 	// 去掉最后一个字节 unpadding 次
+	unpadding := int(origData[length-1])
+	return origData[:(length - unpadding)]
+}
+
+func PKCS7Padding(ciphertext []byte, blockSize int) []byte {
+	padding := blockSize - len(ciphertext)%blockSize
+	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
+	return append(ciphertext, padtext...)
+}
+
+func PKCS7UnPadding(origData []byte) []byte {
+	length := len(origData)
 	unpadding := int(origData[length-1])
 	return origData[:(length - unpadding)]
 }
