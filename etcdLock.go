@@ -1,4 +1,4 @@
-package services
+package heldiamgo
 
 import (
 	"github.com/coreos/etcd/clientv3"
