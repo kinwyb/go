@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"strconv"
 
@@ -112,10 +113,10 @@ func (m *mssql) QueryRows(sql string, args ...interface{}) db.QueryResult {
 //@param sql string SQL
 //@param args... interface{} SQL参数
 func (m *mssql) QueryRow(sql string, args ...interface{}) db.QueryResult {
-	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
-		sql = regexp.MustCompile("(?i)(.*?) LIMIT (.*?)\\s?(.*)?").ReplaceAllString(sql, "$1")
+	if ok, _ := regexp.MatchString("(?i)(.*?) TOP (.*?)\\s?(.*)?", sql); ok {
+		sql = regexp.MustCompile("(?i)(.*?) TOP (.*?)\\s?(.*)?").ReplaceAllString(sql, "$1")
 	} else {
-		sql += " LIMIT 1 "
+		sql = strings.Replace(sql, "SELECT ", "SELECT TOP 1 ", 1)
 	}
 	return m.QueryRows(sql, args...)
 }
@@ -242,7 +243,10 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	if count < 1 {
 		return db.NewQueryResult(nil, nil)
 	}
-	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
+	//sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
+	sql = strings.Replace(sql, "SELECT ",
+		"SELECT TOP "+strconv.FormatInt(int64(currentpage*page.Rows), 10)+","+strconv.FormatInt(int64(page.Rows), 10),
+		1)
 	return m.QueryRows(sql, args...)
 }
 
