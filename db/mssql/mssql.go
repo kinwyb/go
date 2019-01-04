@@ -1,4 +1,4 @@
-//package gosql mssql工具包..引用"github.com/go-sql-driver/mssql"
+//package gosql mssql工具包..引用"github.com/denisenkom/go-mssqldb"
 package mssql
 
 import (
@@ -21,7 +21,7 @@ import (
 var rep *regexp.Regexp
 
 func init() {
-	rep, _ = regexp.Compile("\\s?Error (\\d+):(.*)")
+	rep, _ = regexp.Compile("\\s?mssql:\\s?(\\d+):(.*)")
 }
 
 //mssql 操作对象
@@ -101,6 +101,15 @@ func (m *mssql) Close() {
 func (m *mssql) QueryRows(sql string, args ...interface{}) db.QueryResult {
 	if err := m.connect(); err != nil {
 		return db.ErrQueryResult(err)
+	}
+	i := 0
+	sql = regexp.MustCompile("(\\?)").ReplaceAllStringFunc(sql, func(s string) string {
+		i++
+		return fmt.Sprintf("@p%d", i)
+	})
+	if len(args) < i {
+		return db.ErrQueryResult(
+			err1.NewError(-1, "参数缺少,目标参数%d个,实际参数%d个").Format(i, len(args)))
 	}
 	rows, err := m.db.Query(sql, args...)
 	if err != nil {

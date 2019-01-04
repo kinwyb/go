@@ -18,6 +18,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20180828140353-eee3db372b31 // indirect
 	github.com/coreos/pkg v0.0.0-20180108230652-97fdf19511ea // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/garyburd/redigo v2.0.0+incompatible
 	github.com/ghodss/yaml v1.0.0 // indirect

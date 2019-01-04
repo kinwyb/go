@@ -2,8 +2,10 @@ package mssql
 
 import (
 	"database/sql"
+	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/kinwyb/go/db"
 	"github.com/kinwyb/go/err1"
@@ -30,6 +32,15 @@ type mssqlTx struct {
 //
 //@param args... interface{} SQL参数
 func (m *mssqlTx) QueryRows(sql string, args ...interface{}) db.QueryResult {
+	i := 0
+	sql = regexp.MustCompile("(\\?)").ReplaceAllStringFunc(sql, func(s string) string {
+		i++
+		return fmt.Sprintf("@p%d", i)
+	})
+	if len(args) < i {
+		return db.ErrQueryResult(
+			err1.NewError(-1, "参数缺少,目标参数%d个,实际参数%d个").Format(i, len(args)))
+	}
 	rows, err := m.tx.Query(sql, args...)
 	if err != nil {
 		return db.ErrQueryResult(m.fmterr.FormatError(err))
@@ -46,10 +57,10 @@ func (m *mssqlTx) Prepare(query string) (*sql.Stmt, err1.Error) {
 //@param sql string SQL
 //@param args... interface{} SQL参数
 func (m *mssqlTx) QueryRow(sql string, args ...interface{}) db.QueryResult {
-	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
-		sql = regexp.MustCompile("(?i)(.*?) LIMIT (.*?)\\s?(.*)?").ReplaceAllString(sql, "$1")
+	if ok, _ := regexp.MatchString("(?i)(.*?) TOP (.*?)\\s?(.*)?", sql); ok {
+		sql = regexp.MustCompile("(?i)(.*?) TOP (.*?)\\s?(.*)?").ReplaceAllString(sql, "$1")
 	} else {
-		sql += " LIMIT 1 "
+		sql = strings.Replace(sql, "SELECT ", "SELECT TOP 1 ", 1)
 	}
 	return m.QueryRows(sql, args...)
 }

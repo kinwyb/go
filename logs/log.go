@@ -2,7 +2,6 @@ package logs
 
 import (
 	"fmt"
-
 	"log"
 
 	"os"
@@ -356,4 +355,37 @@ func WriteLog(log Logger, level Level, format string, args ...interface{}) {
 	case Debug:
 		log.Debug(format, args...)
 	}
+}
+
+//注册一个日志获取函数
+type RegisterLogFunc func(log *LogFiles)
+
+var logFactory = NewLogFiles("", 24*time.Hour)
+
+var logmap []RegisterLogFunc
+
+//设置日志路径
+func SetLogPath(filepath string, level ...Level) {
+	if filepath == "" {
+		return
+	} else if len(level) < 1 {
+		level = []Level{Debug}
+	}
+	logFactory = NewLogFiles(filepath, 24*time.Hour, level[0])
+	for _, v := range logmap {
+		if v != nil {
+			v(logFactory)
+		}
+	}
+}
+
+func RegisterLog(fun RegisterLogFunc) {
+	if fun != nil {
+		logmap = append(logmap, fun)
+	}
+}
+
+//获取一个日志
+func GetLogger(logname string) Logger {
+	return logFactory.GetLog(logname)
 }

@@ -80,7 +80,11 @@ func (e *err) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
-	e.code, _ = strconv.ParseInt(fmt.Sprintf("%d", mp["code"]), 10, 64)
+	if code,ok := mp["code"].(float64);ok {
+		e.code = int64(code)
+	} else {
+		e.code, _ = strconv.ParseInt(fmt.Sprintf("%d", mp["code"]), 10, 64)
+	}
 	e.msg = mp["msg"].(string)
 	if mp["errmsg"].(string) != "" && mp["errmsg"].(string) != e.msg {
 		e.e = errors.New(mp["errmsg"].(string))

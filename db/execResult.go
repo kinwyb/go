@@ -6,8 +6,6 @@ import (
 	"github.com/kinwyb/go/err1"
 )
 
-var SQLEmptyChange = err1.NewError(101, "数据无变化")
-
 type ExecResult interface {
 	sql.Result
 	//出错时回调参数方法
