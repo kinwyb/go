@@ -3,9 +3,10 @@ package heldiamgo
 import (
 	"time"
 
+	"github.com/gomodule/redigo/redis"
+
 	"encoding/json"
 
-	"github.com/garyburd/redigo/redis"
 	"github.com/kinwyb/go/db"
 	"github.com/kinwyb/go/logs"
 )
