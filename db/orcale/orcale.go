@@ -17,7 +17,7 @@ type orcale struct {
 
 //链接orcale数据库
 func Connect(host, username, password, db string) (db.SQL, error) {
-	linkstring := username + "/" + password + host
+	linkstring := username + "/" + password + host + "/" + db
 	result := &orcale{}
 	sqlDB, err := sql.Open("oci8", linkstring)
 	if err != nil {
