@@ -8,8 +8,8 @@ import (
 
 type HandleFunc func()
 
-func PprofHttpHandler(prefix string) http.Handler {
-	return handler(prefix)
+func PprofHttpHandler() (string, http.Handler) {
+	return "/debug/pprof/*", handler("/debug/pprof/")
 }
 
 type handler string
