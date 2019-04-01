@@ -95,4 +95,6 @@ type Query interface {
 	//param t TransactionFunc 事务处理函数
 	//param new bool 是否创建新事物,默认false,如果设置true不管事务是否存在都会创建新事物
 	Transaction(t TransactionFunc, new ...bool) err1.Error
+	//解析数据库返回的错误
+	FormatError(e error) err1.Error
 }

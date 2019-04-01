@@ -3,11 +3,21 @@ package mysql
 
 import (
 	"database/sql"
+	"regexp"
+	"strconv"
 	"time"
+
+	"github.com/kinwyb/go/err1"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kinwyb/go/db"
 )
+
+var rep *regexp.Regexp
+
+func init() {
+	rep, _ = regexp.Compile("\\s?Error (\\d+):(.*)")
+}
 
 //mysql 操作对象
 type mysql struct {
@@ -31,4 +41,21 @@ func Connect(host, username, password, db string, other ...string) (db.SQL, erro
 	result.SetSQLDB(sqlDB)
 	result.SetDataBaseName(db) //记录数据库名称,表名格式化会用到
 	return result, nil
+}
+
+func (c *mysql) FormatError(e error) err1.Error {
+	if e == nil {
+		return nil
+	}
+	code := int64(1)
+	msg := e.Error()
+	if rep.MatchString(e.Error()) {
+		d := rep.FindAllStringSubmatch(e.Error(), -1)
+		msg = d[0][2]
+		cod, err := strconv.ParseInt(d[0][1], 10, 64)
+		if err == nil {
+			code = cod
+		}
+	}
+	return err1.NewError(code, msg, e)
 }

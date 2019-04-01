@@ -10,12 +10,6 @@ import (
 	"github.com/kinwyb/go/err1"
 )
 
-var rep *regexp.Regexp
-
-func init() {
-	rep, _ = regexp.Compile("\\s?Error (\\d+):(.*)")
-}
-
 //Conn 操作对象
 type Conn struct {
 	db     *sql.DB
@@ -46,17 +40,7 @@ func (c *Conn) FormatError(e error) err1.Error {
 	if e == nil {
 		return nil
 	}
-	code := int64(1)
-	msg := e.Error()
-	if rep.MatchString(e.Error()) {
-		d := rep.FindAllStringSubmatch(e.Error(), -1)
-		msg = d[0][2]
-		cod, err := strconv.ParseInt(d[0][1], 10, 64)
-		if err == nil {
-			code = cod
-		}
-	}
-	return err1.NewError(code, msg, e)
+	return err1.NewError(-1, e.Error(), e)
 }
 
 //Close 关闭数据库连接
@@ -173,7 +157,7 @@ func (c *Conn) Transaction(t TransactionFunc, new ...bool) err1.Error {
 			}
 		}()
 		if t != nil {
-			e := t(&ConnTx{tx: tx, db: c, fmterr: c})
+			e := t(&ConnTx{tx: tx, db: c})
 			if e != nil {
 				tx.Rollback()
 				return e

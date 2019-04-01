@@ -10,9 +10,12 @@ import (
 
 //ConnTx 事务操作
 type ConnTx struct {
-	tx     *sql.Tx
-	db     *Conn
-	fmterr FormatError
+	tx *sql.Tx
+	db *Conn
+}
+
+func (m *ConnTx) FormatError(e error) err1.Error {
+	return m.db.FormatError(e)
 }
 
 //Rows 查询多条数据,结果以[]map[string]interface{}方式返回
@@ -31,9 +34,9 @@ type ConnTx struct {
 func (m *ConnTx) QueryRows(sql string, args ...interface{}) QueryResult {
 	rows, err := m.tx.Query(sql, args...)
 	if err != nil {
-		return ErrQueryResult(m.fmterr.FormatError(err))
+		return ErrQueryResult(m.FormatError(err))
 	}
-	return NewQueryResult(rows, m.fmterr)
+	return NewQueryResult(rows, m)
 }
 
 func (m *ConnTx) Prepare(query string) (*sql.Stmt, err1.Error) {
@@ -59,7 +62,7 @@ func (m *ConnTx) QueryRow(sql string, args ...interface{}) QueryResult {
 func (m *ConnTx) Exec(sql string, args ...interface{}) ExecResult {
 	result, err := m.tx.Exec(sql, args...)
 	if err != nil {
-		return ErrExecResult(m.fmterr.FormatError(err))
+		return ErrExecResult(m.FormatError(err))
 	}
 	return NewExecResult(result)
 }
@@ -80,7 +83,7 @@ func (m *ConnTx) Count(sql string, args ...interface{}) (int64, err1.Error) {
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return 0, m.fmterr.FormatError(err)
+		return 0, m.FormatError(err)
 	}
 	return count, nil
 }
@@ -100,7 +103,7 @@ func (m *ConnTx) QueryWithPage(sql string, page *PageObj, args ...interface{}) Q
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return ErrQueryResult(m.fmterr.FormatError(err))
+		return ErrQueryResult(m.FormatError(err))
 	}
 	page.SetTotal(count)
 	currentpage := 0
