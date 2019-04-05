@@ -5,10 +5,24 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/kinwyb/go"
+
 	"errors"
 
 	"github.com/kinwyb/go/logs"
 )
+
+//数据消息
+type TcpMsg struct {
+	ClientID string `description:"客户端标记"`
+	Data     []byte `description:"内容"`
+}
+
+// 新连接回调函数
+var NewClientCallBackFun func(client *SClient)
+
+// 客户端断开回调函数
+var ClientDoneCallBackFun func(clientID string)
 
 //TCP服务器对象
 type TcpServer struct {
@@ -19,22 +33,10 @@ type TcpServer struct {
 	conn        net.Listener
 	lg          logs.Logger
 	port        int
-	client      chan *SClient
+	clients     map[string]*SClient
+	readData    chan *TcpMsg //读取到的数据
 	doClose     bool
 	IsClose     <-chan struct{} //关闭channel
-}
-
-//TCP连接到服务器的客户端
-type SClient struct {
-	conn        net.Conn
-	protocol    *Protocol
-	ctx         context.Context
-	cancelFunc  context.CancelFunc
-	lg          logs.Logger
-	socketError chan<- Error
-	IsClose     <-chan struct{} //关闭channel
-	ID          string          //客户端唯一标示
-	doClose     bool            //关闭
 }
 
 //新建一个服务端,port为监听端口
@@ -45,7 +47,8 @@ func NewTcpServer(ctx context.Context, port int) *TcpServer {
 		ctx:       ctx,
 		lg:        logs.NewLogger(),
 		port:      port,
-		client:    make(chan *SClient, 100),
+		clients:   map[string]*SClient{},
+		readData:  make(chan *TcpMsg, 1000),
 	}
 }
 
@@ -70,11 +73,6 @@ func (s *TcpServer) Listen() {
 	case <-s.nctx.Done():
 	}
 	s.Close() //关闭
-}
-
-//获取客户端连接
-func (s *TcpServer) Accept() <-chan *SClient {
-	return s.client
 }
 
 //关闭服务
@@ -114,24 +112,67 @@ func (s *TcpServer) handleConn() {
 			}
 		} else {
 			sclient := &SClient{
-				conn:        conn,
-				protocol:    NewProtocol(1000),
-				socketError: s.socketErr,
-				lg:          s.lg,
+				conn:     conn,
+				server:   s,
+				protocol: NewProtocol(1000),
+				lg:       s.lg,
+				ID:       heldiamgo.IDGen(),
 			}
-			sclient.protocol.SetHeartBeat(heartBeatBytes)
 			sclient.ctx, sclient.cancelFunc = context.WithCancel(s.nctx)
 			sclient.IsClose = sclient.ctx.Done()
 			sclient.doClose = false
 			go sclient.readData()
-			s.client <- sclient
+			s.clients[sclient.ID] = sclient
+			if NewClientCallBackFun != nil {
+				NewClientCallBackFun(sclient)
+			}
 		}
 	}
 }
 
+//发送数据
+func (s *TcpServer) Write(msg *TcpMsg) error {
+	if s.conn == nil {
+		return errors.New("连接已关闭")
+	}
+	client := s.clients[msg.ClientID]
+	if client == nil {
+		return errors.New("客户端链接不存在")
+	}
+	_, err := client.conn.Write(client.protocol.Packet(msg.Data))
+	if err != nil {
+		client.Close()
+		return fmt.Errorf("数据发送失败:%s", err.Error())
+	}
+	return nil
+}
+
+//读取消息
+func (s *TcpServer) Read() <-chan *TcpMsg {
+	return s.readData
+}
+
+//TCP连接到服务器的客户端
+type SClient struct {
+	conn       net.Conn
+	server     *TcpServer
+	protocol   *Protocol
+	ctx        context.Context
+	cancelFunc context.CancelFunc
+	lg         logs.Logger
+	IsClose    <-chan struct{} //关闭channel
+	ID         string          //客户端唯一标示
+	doClose    bool            //关闭
+}
+
 //读取客户端数据
 func (s *SClient) readData() {
-	defer recoverPainc(s.readData)
+	defer func() {
+		if err := recover(); err != nil {
+			s.lg.Error("客户链接[%s]数据读取异常:%s", s.ID, err)
+			s.Close()
+		}
+	}()
 	data := make([]byte, 1024)
 	for {
 		i, err := s.conn.Read(data)
@@ -139,7 +180,7 @@ func (s *SClient) readData() {
 			return
 		} else if err != nil {
 			s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
-			s.socketError <- Error{
+			s.server.socketErr <- Error{
 				t:   Read,
 				err: fmt.Errorf("%s=>%s", s.ID, err.Error()),
 			}
@@ -147,28 +188,35 @@ func (s *SClient) readData() {
 			return
 		}
 		s.protocol.Unpack(data[0:i])
+		select {
+		case data := <-s.protocol.Read():
+			//todo: tcpmsg可以做池
+			s.server.readData <- &TcpMsg{
+				ClientID: s.ID,
+				Data:     data,
+			}
+		default:
+		}
 	}
 }
 
 //发送数据
-func (s *SClient) Write(data []byte) error {
+func (s *SClient) write(msg []byte) error {
 	if s.conn == nil {
 		return errors.New("连接已关闭")
 	}
-	_, err := s.conn.Write(s.protocol.Packet(data))
+	_, err := s.conn.Write(s.protocol.Packet(msg))
 	if err != nil {
 		return fmt.Errorf("数据发送失败:%s", err.Error())
 	}
 	return nil
 }
 
-//读取消息
-func (s *SClient) Read() <-chan []byte {
-	return s.protocol.data
-}
-
 //关闭连接
 func (s *SClient) Close() {
+	if ClientDoneCallBackFun != nil {
+		ClientDoneCallBackFun(s.ID)
+	}
 	if s.cancelFunc != nil {
 		s.cancelFunc()
 		s.cancelFunc = nil
@@ -177,7 +225,7 @@ func (s *SClient) Close() {
 	if s.conn != nil {
 		s.conn.Close()
 		s.conn = nil
-		s.socketError <- Error{
+		s.server.socketErr <- Error{
 			t:   Cancel,
 			err: fmt.Errorf("%s", s.ID),
 		}

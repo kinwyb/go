@@ -13,41 +13,48 @@ import (
 )
 
 type TcpClient struct {
-	socketError chan Error         //连接错误队列
-	addr        string             //服务器地址
-	ctx         context.Context    //
-	nctx        context.Context    //内部的context
-	ncancelFunc context.CancelFunc //关闭函数
-	protocol    *Protocol          //沾包处理
-	conn        net.Conn           //socket连接
-	lg          logs.Logger        //日志
-	IsClose     <-chan struct{}    //关闭channel
-	isConnect   chan bool          //是否连接
-	doClose     bool               //关闭操作
+	socketError   chan Error         //连接错误队列
+	addr          string             //服务器地址
+	sctx          context.Context    //context
+	ctx           context.Context    //context
+	ncancelFunc   context.CancelFunc //关闭函数
+	protocol      *Protocol          //沾包处理
+	conn          net.Conn           //socket连接
+	lg            logs.Logger        //日志
+	IsClose       <-chan struct{}    //关闭channel
+	isConnect     chan bool          //是否连接
+	reConnect     bool               //重连
+	reConnectTime time.Duration      //重连时间
+	connectSucc   bool               //连接成功
+	doClose       bool               //关闭操作
 }
 
 //新客户端对象,注意输出channel error
 //否则错误阻塞可能会到这无法正常运行
 func NewTcpClient(ctx context.Context, addr string) *TcpClient {
-	return &TcpClient{
-		socketError: make(chan Error, 100),
-		ctx:         ctx,
-		addr:        addr,
-		protocol:    NewProtocol(1000),
-		lg:          logs.NewLogger(),
-		isConnect:   make(chan bool),
+	ret := &TcpClient{
+		socketError:   make(chan Error, 100),
+		addr:          addr,
+		sctx:          ctx,
+		protocol:      NewProtocol(1000),
+		lg:            logs.NewLogger(),
+		isConnect:     make(chan bool),
+		reConnectTime: 3 * time.Second,
 	}
+	return ret
 }
 
 //连接服务器,该方法会阻塞知道连接异常或ctx关闭
 func (c *TcpClient) connectServer() {
 	defer recoverPainc(c.connectServer)
+	c.ctx, c.ncancelFunc = context.WithCancel(c.sctx)
 	var err error
 	c.doClose = false
 	c.protocol.Reset()
 	c.protocol.SetHeartBeat(heartBeatBytes) //设置心跳包内容
 	c.conn, err = net.Dial("tcp", c.addr)
 	if err != nil {
+		c.connectSucc = false
 		c.isConnect <- false
 		c.lg.Error("服务器连接失败:%s", err.Error())
 		c.socketError <- Error{
@@ -56,13 +63,19 @@ func (c *TcpClient) connectServer() {
 		}
 		return
 	}
+	c.connectSucc = true
 	c.isConnect <- true
-	c.nctx, c.ncancelFunc = context.WithCancel(c.ctx)
 	c.lg.Info("服务器连接成功...")
-	c.IsClose = c.nctx.Done()
+	c.IsClose = c.ctx.Done()
 	go c.heartbeat() //心跳...
 	c.readData()     //接受数据
 	c.Close()
+}
+
+// 设置是否重连
+func (c *TcpClient) SetReConn(reconn bool, reConnectTime time.Duration) {
+	c.reConnect = reconn
+	c.reConnectTime = reConnectTime
 }
 
 //连接服务器返回连接结果是否成功
@@ -85,9 +98,25 @@ func (c *TcpClient) readData() {
 				err: err,
 			}
 			c.Close()
+			go c.reConn() //是否重连接
 			return
 		}
 		c.protocol.Unpack(data[0:i])
+	}
+}
+
+func (c *TcpClient) reConn() {
+	if c.reConnect {
+		t := time.Tick(c.reConnectTime)
+		for {
+			<-t
+			if !c.connectSucc {
+				go c.connectServer()
+				<-c.isConnect
+			} else {
+				return
+			}
+		}
 	}
 }
 
@@ -98,6 +127,7 @@ func (c *TcpClient) Write(data []byte) {
 			t:   Send,
 			err: errors.New("连接已经关闭"),
 		}
+		return
 	}
 	_, err := c.conn.Write(c.protocol.Packet(data))
 	if err != nil {
@@ -124,6 +154,7 @@ func (c *TcpClient) Close() {
 		c.ncancelFunc()
 		c.ncancelFunc = nil
 	}
+	c.connectSucc = false
 	c.doClose = true
 	if c.conn != nil {
 		c.conn.Close()
@@ -157,8 +188,6 @@ func (c *TcpClient) heartbeat() {
 				c.Connect() //重新连接
 			}
 		case <-c.ctx.Done():
-			return
-		case <-c.nctx.Done():
 			return
 		}
 	}
