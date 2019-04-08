@@ -121,6 +121,7 @@ func (s *TcpServer) handleConn() {
 			sclient.ctx, sclient.cancelFunc = context.WithCancel(s.nctx)
 			sclient.IsClose = sclient.ctx.Done()
 			sclient.doClose = false
+			sclient.protocol.SetHeartBeat(heartBeatBytes) //设置心跳
 			go sclient.readData()
 			s.clients[sclient.ID] = sclient
 			if NewClientCallBackFun != nil {

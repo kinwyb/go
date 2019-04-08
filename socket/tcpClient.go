@@ -52,7 +52,7 @@ func (c *TcpClient) connectServer() {
 	c.doClose = false
 	c.protocol.Reset()
 	c.protocol.SetHeartBeat(heartBeatBytes) //设置心跳包内容
-	c.conn, err = net.Dial("tcp", c.addr)
+	c.conn, err = net.DialTimeout("tcp", c.addr,c.reConnectTime)
 	if err != nil {
 		c.connectSucc = false
 		c.isConnect <- false
@@ -61,6 +61,7 @@ func (c *TcpClient) connectServer() {
 			t:   Connect,
 			err: err,
 		}
+		c.reConn() //重新连接
 		return
 	}
 	c.connectSucc = true

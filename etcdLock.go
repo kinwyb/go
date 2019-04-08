@@ -31,8 +31,9 @@ func (e *EtcdLockFactory) GetLock(path string) (*Lock, error) {
 		return nil, err
 	}
 	return &Lock{
-		mux:    concurrency.NewMutex(etcdSession, path),
-		client: e.etcd,
+		mux:     concurrency.NewMutex(etcdSession, path),
+		session: etcdSession,
+		client:  e.etcd,
 	}, nil
 }
 
@@ -56,10 +57,11 @@ func (e *EtcdLockFactory) Close() {
 
 //锁对象
 type Lock struct {
-	mux    *concurrency.Mutex
-	client *clientv3.Client
-	err    error
-	islock bool
+	mux     *concurrency.Mutex
+	client  *clientv3.Client
+	err     error
+	islock  bool
+	session *concurrency.Session
 }
 
 func (l *Lock) Lock() {
@@ -71,6 +73,9 @@ func (l *Lock) Lock() {
 
 //解锁
 func (l *Lock) Unlock() {
+	if l.session != nil {
+		defer l.session.Close()
+	}
 	if l.mux != nil && l.client != nil {
 		l.mux.Unlock(l.client.Ctx())
 		l.islock = false

@@ -7,7 +7,6 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
-	"encoding/hex"
 )
 
 type Padding int
@@ -39,7 +38,7 @@ func AESCBCEncrypt(origData []byte, key []byte, padding ...Padding) ([]byte, err
 	blockMode := cipher.NewCBCEncrypter(block, key[:blockSize])
 	cypted := make([]byte, len(origData))
 	blockMode.CryptBlocks(cypted, origData)
-	return []byte(hex.EncodeToString(cypted)), nil
+	return cypted, nil
 }
 
 //AESECBEncrypt Aes ECB加密PKCS5
@@ -64,7 +63,7 @@ func AESECBEncrypt(origData []byte, key []byte, padding ...Padding) ([]byte, err
 	blockMode := newECBEncrypter(block)
 	cypted := make([]byte, len(origData))
 	blockMode.CryptBlocks(cypted, origData)
-	return []byte(hex.EncodeToString(cypted)), nil
+	return cypted, nil
 }
 
 //AESCBCDecrypt Aes CBC解密PKCS5
