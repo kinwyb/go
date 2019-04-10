@@ -23,6 +23,7 @@ type TcpClient struct {
 	lg            logs.Logger        //日志
 	IsClose       <-chan struct{}    //关闭channel
 	isConnect     chan bool          //是否连接
+	reConnectChan chan bool          //重连标记
 	reConnect     bool               //重连
 	reConnectTime time.Duration      //重连时间
 	connectSucc   bool               //连接成功
@@ -39,8 +40,10 @@ func NewTcpClient(ctx context.Context, addr string) *TcpClient {
 		protocol:      NewProtocol(1000),
 		lg:            logs.NewLogger(),
 		isConnect:     make(chan bool),
+		reConnectChan: make(chan bool),
 		reConnectTime: 3 * time.Second,
 	}
+	go ret.reConnGoroutine()
 	return ret
 }
 
@@ -52,7 +55,7 @@ func (c *TcpClient) connectServer() {
 	c.doClose = false
 	c.protocol.Reset()
 	c.protocol.SetHeartBeat(heartBeatBytes) //设置心跳包内容
-	c.conn, err = net.DialTimeout("tcp", c.addr,c.reConnectTime)
+	c.conn, err = net.DialTimeout("tcp", c.addr, c.reConnectTime)
 	if err != nil {
 		c.connectSucc = false
 		c.isConnect <- false
@@ -61,7 +64,7 @@ func (c *TcpClient) connectServer() {
 			t:   Connect,
 			err: err,
 		}
-		c.reConn() //重新连接
+		c.reConnectChan <- true //发起重连接
 		return
 	}
 	c.connectSucc = true
@@ -99,25 +102,23 @@ func (c *TcpClient) readData() {
 				err: err,
 			}
 			c.Close()
-			go c.reConn() //是否重连接
+			c.reConnectChan <- true //发起重连接
 			return
 		}
 		c.protocol.Unpack(data[0:i])
 	}
 }
 
-func (c *TcpClient) reConn() {
-	if c.reConnect {
-		t := time.Tick(c.reConnectTime)
-		for {
-			<-t
-			if !c.connectSucc {
-				go c.connectServer()
-				<-c.isConnect
-			} else {
-				return
-			}
+func (c *TcpClient) reConnGoroutine() {
+	for {
+		<-c.reConnectChan
+		if c.connectSucc || !c.reConnect { //连接成功或者不需要重连的直接返回
+			continue
 		}
+		t := time.NewTimer(c.reConnectTime)
+		<-t.C
+		go c.connectServer()
+		<-c.isConnect
 	}
 }
 
