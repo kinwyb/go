@@ -1,0 +1,31 @@
+//指定版本
+//注意proto3与proto2的写法有些不同
+// protoc --go_out=. *.proto
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+
+//包名，通过protoc生成时go文件时
+package db;
+
+//type res struct {
+//	columns    []string        //查询字段内容
+//	data       [][]interface{} //查询结果内容
+//	datalength int             //结果长度
+//	rows       *sql.Rows       //查询结果对象
+//	err        err1.Error      //查询错误
+//	errFmt     FormatError     //错误格式化
+//}
+
+// 查询返回结果
+message QueryResultMsg {
+    repeated string columns = 1; //查询字段内容
+    int64 datalength = 2; //结果长度
+    int64 errCode = 3; //错误编码
+    string errMsg = 4; //错误内容
+    repeated QueryResultData data = 5; //查询结果
+}
+
+message QueryResultData {
+    repeated google.protobuf.Any data = 1; //实际内容
+}

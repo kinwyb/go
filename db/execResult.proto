@@ -1,0 +1,13 @@
+//指定版本
+//注意proto3与proto2的写法有些不同
+// protoc --go_out=. *.proto
+syntax = "proto3";
+
+package db;
+
+message ExecResultMsg {
+    int64 lastInsertId = 1; //在最后新增的ID
+    int64 rowsAffected = 2; //影响行数
+    int64 errCode = 3; //错误编码
+    string errMsg = 4; //错误内容
+}

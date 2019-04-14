@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 
+	"github.com/gogo/protobuf/proto"
+
 	"github.com/kinwyb/go/err1"
 )
 
@@ -19,9 +21,6 @@ type QueryResult interface {
 	IsEmpty() bool
 	//结果空是回调参数方法
 	Empty(func()) QueryResult
-	//关闭查询结果.
-	//如果读取了结果内容查询会自动关闭,只有不需要获取查询结果的时候才需要手动调用关闭查询结果
-	Close()
 	//获取字段列表
 	Columns() []string
 	//获取所有数据
@@ -210,9 +209,47 @@ func (r *res) ForEach(f func(map[string]interface{}) bool) QueryResult {
 	return r
 }
 
-//关闭查询结果
-func (r *res) Close() {
-	if r.rows != nil {
-		r.rows.Close()
+// 查询结果序列化成字节数组
+func QueryResultToBytes(q QueryResult) []byte {
+	msg := &QueryResultMsg{
+		Columns:    q.Columns(),
+		Datalength: int64(q.Length()),
 	}
+	err := q.HasError()
+	if err != nil {
+		msg.ErrCode = err.Code()
+		msg.ErrMsg = err.Msg()
+	}
+	for _, v := range q.Rows() {
+		ret := &QueryResultData{}
+		for _, v1 := range v {
+			ret.Data = append(ret.Data, InterfaceToProtoAnyDefault(v1))
+		}
+		if len(ret.Data) > 0 {
+			msg.Data = append(msg.Data, ret)
+		}
+	}
+	ret, _ := proto.Marshal(msg)
+	return ret
+}
+
+// 字节数组序列化成查询结果
+func BytesToQueryResult(data []byte) QueryResult {
+	msg := &QueryResultMsg{}
+	proto.UnmarshalMerge(data, msg)
+	r := &res{
+		columns:    msg.Columns,
+		datalength: int(msg.Datalength),
+	}
+	if msg.ErrCode != 0 {
+		r.err = err1.NewError(msg.ErrCode, msg.ErrMsg)
+	}
+	for _, v := range msg.Data {
+		var r1 []interface{}
+		for _, v1 := range v.Data {
+			r1 = append(r1, ProtoAnyToInterface(v1))
+		}
+		r.data = append(r.data, r1)
+	}
+	return r
 }
