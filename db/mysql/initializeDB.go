@@ -53,6 +53,13 @@ type Conn struct {
 	lg          logs.Logger //日志
 }
 
+func (d *Conn) FormatError(e error) err1.Error {
+	if m, ok := d.conn.(*mysql); ok {
+		return m.FormatError(e)
+	}
+	return err1.NewError(-1, e.Error())
+}
+
 //获取完整表名[附带数据库名称]
 func (d *Conn) Table(tbname string) string {
 	if d == nil || d.conn == nil {
