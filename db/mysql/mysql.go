@@ -22,6 +22,7 @@ func init() {
 //mysql 操作对象
 type mysql struct {
 	db.Conn
+	linkString string
 }
 
 //链接mysql数据库，其中other参数代表链接字符串附加的配置信息
@@ -40,7 +41,14 @@ func Connect(host, username, password, db string, other ...string) (db.SQL, erro
 	sqlDB.SetConnMaxLifetime(1 * time.Hour) //一个小时后重置链接
 	result.SetSQLDB(sqlDB)
 	result.SetDataBaseName(db) //记录数据库名称,表名格式化会用到
+	result.SetReconnectFunc(result.reconnect)
+	result.linkString = linkstring
 	return result, nil
+}
+
+// 重新连接
+func (c *mysql) reconnect() (*sql.DB, error) {
+	return sql.Open("mysql", c.linkString)
 }
 
 func (c *mysql) FormatError(e error) err1.Error {
