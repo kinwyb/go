@@ -14,6 +14,7 @@ import (
 //mssql 操作对象
 type mssql struct {
 	db.Conn
+	linkString string
 }
 
 //链接mssql数据库
@@ -28,13 +29,21 @@ func Connect(host, username, password, db string) (db.SQL, error) {
 		// Path:  instance, // if connecting to an instance instead of a port
 		RawQuery: query.Encode(),
 	}
-	result := &mssql{}
-	sqlDB, err := sql.Open("sqlserver", u.String())
+	result := &mssql{
+		linkString: u.String(),
+	}
+	sqlDB, err := sql.Open("sqlserver", result.linkString)
 	if err != nil {
 		return nil, err
 	}
 	sqlDB.SetConnMaxLifetime(1 * time.Hour) //一个小时后重置链接
 	result.SetSQLDB(sqlDB)
 	result.SetDataBaseName(db) //记录数据库名称,表名格式化会用到
+	result.SetReconnectFunc(result.reconnect)
 	return result, nil
+}
+
+// 重新连接
+func (c *mssql) reconnect() (*sql.DB, error) {
+	return sql.Open("sqlserver", c.linkString)
 }
