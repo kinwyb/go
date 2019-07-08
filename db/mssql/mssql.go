@@ -47,3 +47,11 @@ func Connect(host, username, password, db string) (db.SQL, error) {
 func (c *mssql) reconnect() (*sql.DB, error) {
 	return sql.Open("sqlserver", c.linkString)
 }
+
+//格式化表名称,不做处理直接返回
+func (c *mssql) Table(tbname string) string {
+	if c == nil || c.Conn.DataBaseName() == "" {
+		return tbname
+	}
+	return "[" + c.Conn.DataBaseName() + "].[dbo].[" + tbname + "]"
+}
