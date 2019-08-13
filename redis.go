@@ -54,8 +54,13 @@ func (r *RedisUtil) Debug(b bool) {
 }
 
 //设置缓存前缀
-func (r *RedisUtil) Prefix(prefix string) {
+func (r *RedisUtil) SetPrefix(prefix string) {
 	r.prefix = prefix
+}
+
+//缓存前缀
+func (r *RedisUtil) Prefix() string {
+	return r.prefix
 }
 
 //设置日志
@@ -361,4 +366,15 @@ func (r *RedisUtil) ZINCRBY(key string, increment int64, member string) (int64, 
 	ret, err := rclient.Do("ZINCRBY", r.prefix+key, increment, member)
 	rclient.Close()
 	return db.Int64Default(ret), err
+}
+
+// 判断序集合key是否包含成员member
+func (r *RedisUtil) SISMEMBER(key string, member string) bool {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("SISMEMBER", r.prefix+key, member)
+	rclient.Close()
+	if err != nil {
+		return false
+	}
+	return db.Int64Default(ret) == 1
 }
