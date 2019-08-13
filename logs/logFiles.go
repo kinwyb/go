@@ -46,68 +46,60 @@ func (lf *LogFiles) GetLog(filename string) Logger {
 			l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+"/"+filename+`","level":`+
 				fmt.Sprintf("%d", lf.level)+`,"maxlines":0,"maxsize":0,"daily":true,"maxdays":10}`)
 		}
-		lf.logmap.Store(filename, l)
-		return l
+		ret := &logger{
+			lg:    l,
+			level: lf.level,
+		}
+		lf.logmap.Store(filename, ret)
+		return ret
 	}
 }
 
 //设置输出日志等级
 func (lf *LogFiles) Level(level Level) {
-	lf.level = level
+	lf.logmap.Range(func(key, value interface{}) bool {
+		if v, ok := value.(*logger); ok {
+			v.level = level
+		}
+		return true
+	})
+}
+
+func (lf *LogFiles) Notice(filename, format string, args ...interface{}) {
+	lf.GetLog(filename).Notice(format, args...)
 }
 
 //输出
 func (lf *LogFiles) Debug(filename, format string, args ...interface{}) {
-	if lf.level <= Debug {
-		l := lf.GetLog(filename)
-		l.Debug(format, args...)
-	}
+	lf.GetLog(filename).Debug(format, args...)
 }
 
 //输出
 func (lf *LogFiles) Info(filename, format string, args ...interface{}) {
-	if lf.level <= Info {
-		l := lf.GetLog(filename)
-		l.Info(format, args...)
-	}
+	lf.GetLog(filename).Info(format, args...)
 }
 
 //警告
 func (lf *LogFiles) Warning(filename, format string, args ...interface{}) {
-	if lf.level <= Warn {
-		l := lf.GetLog(filename)
-		l.Warning(format, args...)
-	}
+	lf.GetLog(filename).Warning(format, args...)
 }
 
 //错误
 func (lf *LogFiles) Error(filename, format string, args ...interface{}) {
-	if lf.level <= Error {
-		l := lf.GetLog(filename)
-		l.Error(format, args...)
-	}
+	lf.GetLog(filename).Error(format, args...)
 }
 
 //关键
 func (lf *LogFiles) Critical(filename, format string, args ...interface{}) {
-	if lf.level <= Critical {
-		l := lf.GetLog(filename)
-		l.Critical(format, args...)
-	}
+	lf.GetLog(filename).Critical(format, args...)
 }
 
 //警报
 func (lf *LogFiles) Alert(filename, format string, args ...interface{}) {
-	if lf.level <= Alert {
-		l := lf.GetLog(filename)
-		l.Alert(format, args...)
-	}
+	lf.GetLog(filename).Alert(format, args...)
 }
 
 //紧急
 func (lf *LogFiles) Emergency(filename, format string, args ...interface{}) {
-	if lf.level <= Emergency {
-		l := lf.GetLog(filename)
-		l.Emergency(format, args...)
-	}
+	lf.GetLog(filename).Emergency(format, args...)
 }
