@@ -52,56 +52,56 @@ func (lf *logger) Write(p []byte) (n int, err error) {
 }
 
 func (lf *logger) Notice(format string, args ...interface{}) {
-	if lf.level <= Notice {
+	if lf.level >= Notice {
 		lf.lg.Notice(format, args...)
 	}
 }
 
 //输出
 func (lf *logger) Debug(format string, args ...interface{}) {
-	if lf.level <= Debug {
+	if lf.level >= Debug {
 		lf.lg.Debug(format, args...)
 	}
 }
 
 //输出
 func (lf *logger) Info(format string, args ...interface{}) {
-	if lf.level <= Info {
+	if lf.level >= Info {
 		lf.lg.Info(format, args...)
 	}
 }
 
 //警告
 func (lf *logger) Warning(format string, args ...interface{}) {
-	if lf.level <= Warn {
+	if lf.level >= Warn {
 		lf.lg.Warning(format, args...)
 	}
 }
 
 //错误
 func (lf *logger) Error(format string, args ...interface{}) {
-	if lf.level <= Error {
+	if lf.level >= Error {
 		lf.lg.Error(format, args...)
 	}
 }
 
 //关键
 func (lf *logger) Critical(format string, args ...interface{}) {
-	if lf.level <= Critical {
+	if lf.level >= Critical {
 		lf.lg.Critical(format, args...)
 	}
 }
 
 //警报
 func (lf *logger) Alert(format string, args ...interface{}) {
-	if lf.level <= Alert {
+	if lf.level >= Alert {
 		lf.lg.Alert(format, args...)
 	}
 }
 
 //紧急
 func (lf *logger) Emergency(format string, args ...interface{}) {
-	if lf.level <= Emergency {
+	if lf.level >= Emergency {
 		lf.lg.Emergency(format, args...)
 	}
 }
