@@ -5,8 +5,6 @@ import (
 
 	"github.com/gomodule/redigo/redis"
 
-	"encoding/json"
-
 	"github.com/kinwyb/go/db"
 	"github.com/kinwyb/go/logs"
 )
@@ -72,10 +70,10 @@ func (r *RedisUtil) SET(key, value string) bool {
 	}
 	rclient := r.pool.Get()
 	_, err := rclient.Do("SET", r.prefix+key, value)
+	rclient.Close()
 	if err != nil && r.log != nil {
 		r.log.Error("[SET]失败:%s", err.Error())
 	}
-	rclient.Close()
 	return err == nil
 }
 
@@ -86,10 +84,10 @@ func (r *RedisUtil) SETEX(key, value string, expireTime int64) bool {
 	}
 	rclient := r.pool.Get()
 	_, err := rclient.Do("SETEX", r.prefix+key, expireTime, value)
+	rclient.Close()
 	if err != nil && r.log != nil {
 		r.log.Error("[SETEX]失败:%s", err.Error())
 	}
-	rclient.Close()
 	return err == nil
 }
 
@@ -101,14 +99,13 @@ func (r *RedisUtil) EXPIRE(key string, expireTime int64) int {
 	}
 	rclient := r.pool.Get()
 	ret, err := rclient.Do("EXPIRE", r.prefix+key, expireTime)
+	rclient.Close()
 	if err != nil {
 		if r.log != nil {
 			r.log.Error("[EXPIRE]失败:%s", err.Error())
 		}
-		rclient.Close()
 		return -1
 	}
-	rclient.Close()
 	return db.IntDefault(ret, -1)
 }
 
@@ -129,14 +126,13 @@ func (r *RedisUtil) DEL(key ...interface{}) int {
 	}
 	rclient := r.pool.Get()
 	ret, err := rclient.Do("DEL", keys...)
+	rclient.Close()
 	if err != nil {
 		if r.log != nil {
 			r.log.Error("[DEL]失败:%s", err.Error())
 		}
-		rclient.Close()
 		return -1
 	}
-	rclient.Close()
 	return db.IntDefault(ret, -1)
 }
 
@@ -156,14 +152,13 @@ func (r *RedisUtil) KEYS(pattern string) ([]string, error) {
 	}
 	rclient := r.pool.Get()
 	ret, err := rclient.Do("KEYS", r.prefix+pattern)
+	rclient.Close()
 	if err != nil {
 		if r.log != nil {
 			r.log.Error("[KEYS]失败:%s", err.Error())
 		}
-		rclient.Close()
 		return nil, err
 	}
-	rclient.Close()
 	return db.Strings(ret)
 }
 
@@ -176,14 +171,13 @@ func (r *RedisUtil) GET(key string) string {
 	rclient := r.pool.Get()
 	key = r.prefix + key
 	ret, err := rclient.Do("GET", key)
+	rclient.Close()
 	if err != nil || ret == nil {
 		if r.log != nil {
 			r.log.Error("[GET]失败:%s", err.Error())
 		}
-		rclient.Close()
 		return ""
 	}
-	rclient.Close()
 	return db.StringDefault(ret, "")
 }
 
@@ -195,14 +189,13 @@ func (r *RedisUtil) GETSET(key, value string) string {
 	}
 	rclient := r.pool.Get()
 	ret, err := rclient.Do("GETSET", r.prefix+key, value)
+	rclient.Close()
 	if err != nil || ret == nil {
 		if r.log != nil {
 			r.log.Error("[GETSET]失败:%s", err.Error())
 		}
-		rclient.Close()
 		return ""
 	}
-	rclient.Close()
 	return db.StringDefault(ret, "")
 }
 
@@ -233,76 +226,139 @@ func (r *RedisUtil) GetConn(fun func(redis.Conn)) {
 	rclient.Close()
 }
 
-//GETOBJ 获取缓存
-func (r *RedisUtil) GETOBJ(key string, obj interface{}) bool {
-	if obj == nil || r.debug {
-		return false
-	}
-	str := r.GET(r.prefix + key)
-	if str != "" {
-		if v, ok := obj.(json.Unmarshaler); ok {
-			return v.UnmarshalJSON([]byte(str)) == nil
-		} else {
-			return json.Unmarshal([]byte(str), obj) == nil
-		}
-	}
-	return false
-}
-
-//GETOBJEXP 获取缓存并更新缓存时间
-func (r *RedisUtil) GETOBJEXP(key string, obj interface{}, expireTime int64) bool {
-	if obj == nil || r.debug {
-		return false
-	}
-	str := r.GETEXP(r.prefix+key, expireTime)
-	if str != "" {
-		if v, ok := obj.(json.Unmarshaler); ok {
-			return v.UnmarshalJSON([]byte(str)) == nil
-		} else {
-			return json.Unmarshal([]byte(str), obj) == nil
-		}
-	}
-	return false
-}
-
-//PUT 设置缓存
-func (r *RedisUtil) PUT(key string, obj interface{}) {
-	if obj == nil || r.debug {
-		return
-	}
-	var b []byte
-	var err error
-	if v, ok := obj.(json.Marshaler); ok {
-		b, err = v.MarshalJSON()
-	} else {
-		b, err = json.Marshal(obj)
-	}
+// 获取集合所有值
+func (r *RedisUtil) SMEMBERS(key string) ([]string, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("SMEMBERS", r.prefix+key)
+	rclient.Close()
 	if err != nil {
-		if r.log != nil {
-			r.log.Error("[PUT]:%s", err.Error())
-		}
-		return
+		return nil, err
 	}
-	r.SET(r.prefix+key, string(b))
+	return db.Strings(ret)
 }
 
-//PUTEXP 设置缓存
-func (r *RedisUtil) PUTEXP(key string, obj interface{}, time int64) {
-	if obj == nil || r.debug {
-		return
+//原子操作
+func (r *RedisUtil) INCRBY(key string, increment int64) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("INCRBY", r.prefix+key, increment)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 将元素添加到集合,返回0/1(失败/成功)
+func (r *RedisUtil) SADD(key, member string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("SADD", r.prefix+key, member)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 将元素添加有序集合,返回0/1(失败/成功)
+func (r *RedisUtil) ZADD(key string, score float64, member string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZADD", r.prefix+key, score, member)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 返回有序集合成员score值
+func (r *RedisUtil) ZSCORE(key string, member string) (float64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZSCORE", r.prefix+key, member)
+	rclient.Close()
+	return db.Float64Default(ret), err
+}
+
+// 返回有序集合key中，指定区间的成员(按score从大到小排序)
+func (r *RedisUtil) ZREVRANGE(key string, start, stop int64, withscores bool) ([]string, error) {
+	args := []interface{}{
+		r.prefix + key,
+		start,
+		stop,
 	}
-	var b []byte
-	var err error
-	if v, ok := obj.(json.Marshaler); ok {
-		b, err = v.MarshalJSON()
-	} else {
-		b, err = json.Marshal(obj)
+	if withscores {
+		args = append(args, "WITHSCORES")
 	}
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZREVRANGE", args...)
+	rclient.Close()
 	if err != nil {
-		if r.log != nil {
-			r.log.Error("[PUTEXP]:%s", err.Error())
-		}
-		return
+		return nil, err
 	}
-	r.SETEX(r.prefix+key, string(b), time)
+	return db.Strings(ret)
+}
+
+// 返回有序集合key中，指定区间的成员(按score从小到大排序)
+func (r *RedisUtil) ZRANGE(key string, start, stop int64, withscores bool) ([]string, error) {
+	args := []interface{}{
+		r.prefix + key,
+		start,
+		stop,
+	}
+	if withscores {
+		args = append(args, "WITHSCORES")
+	}
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZRANGE", args...)
+	rclient.Close()
+	if err != nil {
+		return nil, err
+	}
+	return db.Strings(ret)
+}
+
+// 返回有序集合key中,指定成员的排名(按score从小到大排序),第一名为0
+func (r *RedisUtil) ZRANK(key string, member string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZRANK", r.prefix+key, member)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 返回有序集合key中,指定成员的排名(按score从大到小排序),第一名为0
+func (r *RedisUtil) ZREVRANK(key string, member string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZREVRANK", r.prefix+key, member)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 移除有序集合key中指定成员的排名,返回移除数量
+func (r *RedisUtil) ZREM(key string, member string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZREM", r.prefix+key, member)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 移除集合key中指定成员的排名,返回移除数量
+func (r *RedisUtil) SREM(key string, member string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("SREM", r.prefix+key, member)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 返回集合key成员数量
+func (r *RedisUtil) SCARD(key string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("SCARD", r.prefix+key)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 返回有序集合key成员数量
+func (r *RedisUtil) ZCARD(key string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZCARD", r.prefix+key)
+	rclient.Close()
+	return db.Int64Default(ret), err
+}
+
+// 为有序集合key成员score增加值
+func (r *RedisUtil) ZINCRBY(key string, increment int64, member string) (int64, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("ZINCRBY", r.prefix+key, increment, member)
+	rclient.Close()
+	return db.Int64Default(ret), err
 }
