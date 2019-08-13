@@ -48,36 +48,12 @@ func (lf *LogFiles) GetLog(filename string) Logger {
 		}
 		lf.logmap.Store(filename, l)
 		return l
-		//var l Logger
-		//if lf.filepath == "" {
-		//	l = NewLogger()
-		//} else {
-		//	l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, lf.level)
-		//}
-		//lf.logmap.Store(filename, l)
-		//return l
 	}
 }
 
 //设置输出日志等级
-func (lf *LogFiles) Level(filename string, level Level) {
-	if v, ok := lf.logmap.Load(filename); ok {
-		if x, ok := v.(*logs.BeeLogger); ok {
-			x.SetLevel(level)
-		}
-	} else {
-		var l Logger
-		if lf.filepath == "" {
-			l = NewLogger(level)
-		} else {
-			l := logs.NewLogger(3000)
-			if lf.filepath != "" {
-				l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+"/"+filename+`","level":`+
-					fmt.Sprintf("%d", lf.level)+`,"maxlines":0,"maxsize":0,"daily":true,"maxdays":10}`)
-			}
-		}
-		lf.logmap.Store(filename, l)
-	}
+func (lf *LogFiles) Level(level Level) {
+	lf.level = level
 }
 
 //输出

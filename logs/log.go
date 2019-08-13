@@ -96,6 +96,10 @@ func SetLogPath(filepath string, level ...Level) {
 	}
 }
 
+func SetLevel(level Level) {
+	logFactory.Level(level)
+}
+
 func RegisterLog(fun RegisterLogFunc) {
 	if fun != nil {
 		logmap = append(logmap, fun)

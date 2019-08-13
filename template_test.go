@@ -15,3 +15,7 @@ func Test_Template(t *testing.T) {
 		println(string(data))
 	}
 }
+
+func Test_e(t *testing.T) {
+
+}
