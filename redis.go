@@ -3,6 +3,8 @@ package heldiamgo
 import (
 	"time"
 
+	"github.com/go-redsync/redsync"
+
 	"github.com/gomodule/redigo/redis"
 
 	"github.com/kinwyb/go/db"
@@ -11,10 +13,11 @@ import (
 
 //RedisUtil redis操作工具
 type RedisUtil struct {
-	pool   *redis.Pool //redis连接池
-	prefix string      //前缀
-	debug  bool
-	log    logs.Logger
+	pool    *redis.Pool //redis连接池
+	prefix  string      //前缀
+	debug   bool
+	redsync *redsync.Redsync //分布式锁对象
+	log     logs.Logger
 }
 
 //初始化redis,host=地址，password密码,db数据名称，maxidle最大有效连接数,active 最大可用连接数
@@ -25,26 +28,28 @@ func InitializeRedis(host, password, db string, maxidle, maxactive int) *RedisUt
 	if maxactive < 10 {
 		maxactive = 10
 	}
-	return &RedisUtil{
-		pool: &redis.Pool{ // 建立连接池
-			MaxIdle:     maxidle,
-			MaxActive:   maxactive,
-			IdleTimeout: 180 * time.Second,
-			Dial: func() (redis.Conn, error) {
-				c, err := redis.Dial("tcp", host)
-				if err != nil {
-					return nil, err
-				}
-				if password != "" {
-					//认证
-					c.Do("AUTH", password)
-				}
-				// 选择db
-				c.Do("SELECT", db)
-				return c, nil
-			},
+	pool := &redis.Pool{ // 建立连接池
+		MaxIdle:     maxidle,
+		MaxActive:   maxactive,
+		IdleTimeout: 180 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", host)
+			if err != nil {
+				return nil, err
+			}
+			if password != "" {
+				//认证
+				c.Do("AUTH", password)
+			}
+			// 选择db
+			c.Do("SELECT", db)
+			return c, nil
 		},
-		debug: false,
+	}
+	return &RedisUtil{
+		pool:    pool,
+		redsync: redsync.New([]redsync.Pool{pool}),
+		debug:   false,
 	}
 }
 
@@ -392,4 +397,9 @@ func (r *RedisUtil) MGET(keys ...string) ([]string, error) {
 		return nil, err
 	}
 	return db.Strings(ret)
+}
+
+// redis分布式锁对象
+func (r *RedisUtil) Mutex(key string, options ...redsync.Option) *redsync.Mutex {
+	return r.redsync.NewMutex(r.prefix+key, options...)
 }

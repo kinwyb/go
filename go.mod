@@ -22,6 +22,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
+	github.com/go-redsync/redsync v1.3.0
 	github.com/go-sql-driver/mysql v1.4.0
 	github.com/gogo/protobuf v1.1.1
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
@@ -46,7 +47,6 @@ require (
 	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a
 	github.com/soheilhy/cmux v0.1.4 // indirect
-	github.com/sourcegraph/go-diff v0.5.1 // indirect
 	github.com/spf13/cobra v0.0.3
 	github.com/spf13/pflag v1.0.2 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
