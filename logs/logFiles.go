@@ -62,15 +62,14 @@ func (lf *LogFiles) GetLog(filename string) Logger {
 //设置输出日志等级
 func (lf *LogFiles) Level(filename string, level Level) {
 	if v, ok := lf.logmap.Load(filename); ok {
-		if x, ok := v.(logger); ok {
-			x.level = level
+		if x, ok := v.(*logs.BeeLogger); ok {
+			x.SetLevel(level)
 		}
 	} else {
 		var l Logger
 		if lf.filepath == "" {
 			l = NewLogger(level)
 		} else {
-			//l = NewFileLogger(filepath.Join(lf.filepath, filename), lf.t, level)
 			l := logs.NewLogger(3000)
 			if lf.filepath != "" {
 				l.SetLogger(logs.AdapterFile, `{"filename":"`+lf.filepath+"/"+filename+`","level":`+
@@ -83,7 +82,7 @@ func (lf *LogFiles) Level(filename string, level Level) {
 
 //输出
 func (lf *LogFiles) Debug(filename, format string, args ...interface{}) {
-	if lf.level >= Debug {
+	if lf.level <= Debug {
 		l := lf.GetLog(filename)
 		l.Debug(format, args...)
 	}
@@ -91,7 +90,7 @@ func (lf *LogFiles) Debug(filename, format string, args ...interface{}) {
 
 //输出
 func (lf *LogFiles) Info(filename, format string, args ...interface{}) {
-	if lf.level >= Info {
+	if lf.level <= Info {
 		l := lf.GetLog(filename)
 		l.Info(format, args...)
 	}
@@ -99,7 +98,7 @@ func (lf *LogFiles) Info(filename, format string, args ...interface{}) {
 
 //警告
 func (lf *LogFiles) Warning(filename, format string, args ...interface{}) {
-	if lf.level >= Warn {
+	if lf.level <= Warn {
 		l := lf.GetLog(filename)
 		l.Warning(format, args...)
 	}
@@ -107,7 +106,7 @@ func (lf *LogFiles) Warning(filename, format string, args ...interface{}) {
 
 //错误
 func (lf *LogFiles) Error(filename, format string, args ...interface{}) {
-	if lf.level >= Error {
+	if lf.level <= Error {
 		l := lf.GetLog(filename)
 		l.Error(format, args...)
 	}
@@ -115,7 +114,7 @@ func (lf *LogFiles) Error(filename, format string, args ...interface{}) {
 
 //关键
 func (lf *LogFiles) Critical(filename, format string, args ...interface{}) {
-	if lf.level >= Critical {
+	if lf.level <= Critical {
 		l := lf.GetLog(filename)
 		l.Critical(format, args...)
 	}
@@ -123,7 +122,7 @@ func (lf *LogFiles) Critical(filename, format string, args ...interface{}) {
 
 //警报
 func (lf *LogFiles) Alert(filename, format string, args ...interface{}) {
-	if lf.level >= Alert {
+	if lf.level <= Alert {
 		l := lf.GetLog(filename)
 		l.Alert(format, args...)
 	}
@@ -131,7 +130,7 @@ func (lf *LogFiles) Alert(filename, format string, args ...interface{}) {
 
 //紧急
 func (lf *LogFiles) Emergency(filename, format string, args ...interface{}) {
-	if lf.level >= Emergency {
+	if lf.level <= Emergency {
 		l := lf.GetLog(filename)
 		l.Emergency(format, args...)
 	}
