@@ -57,6 +57,7 @@ func (lf *LogFiles) GetLog(filename string) Logger {
 
 //设置输出日志等级
 func (lf *LogFiles) Level(level Level) {
+	lf.level = level
 	lf.logmap.Range(func(key, value interface{}) bool {
 		if v, ok := value.(*logger); ok {
 			v.level = level
