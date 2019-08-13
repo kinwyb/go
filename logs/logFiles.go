@@ -33,7 +33,6 @@ func NewLogFiles(filepath string, t time.Duration, level ...Level) *LogFiles {
 	if len(level) > 0 {
 		ret.level = level[0]
 	}
-	ret.level = Debug
 	return ret
 }
 
@@ -84,42 +83,56 @@ func (lf *LogFiles) Level(filename string, level Level) {
 
 //输出
 func (lf *LogFiles) Debug(filename, format string, args ...interface{}) {
-	l := lf.GetLog(filename)
-	l.Debug(format, args...)
+	if lf.level >= Debug {
+		l := lf.GetLog(filename)
+		l.Debug(format, args...)
+	}
 }
 
 //输出
 func (lf *LogFiles) Info(filename, format string, args ...interface{}) {
-	l := lf.GetLog(filename)
-	l.Info(format, args...)
+	if lf.level >= Info {
+		l := lf.GetLog(filename)
+		l.Info(format, args...)
+	}
 }
 
 //警告
 func (lf *LogFiles) Warning(filename, format string, args ...interface{}) {
-	l := lf.GetLog(filename)
-	l.Warning(format, args...)
+	if lf.level >= Warn {
+		l := lf.GetLog(filename)
+		l.Warning(format, args...)
+	}
 }
 
 //错误
 func (lf *LogFiles) Error(filename, format string, args ...interface{}) {
-	l := lf.GetLog(filename)
-	l.Error(format, args...)
+	if lf.level >= Error {
+		l := lf.GetLog(filename)
+		l.Error(format, args...)
+	}
 }
 
 //关键
 func (lf *LogFiles) Critical(filename, format string, args ...interface{}) {
-	l := lf.GetLog(filename)
-	l.Critical(format, args...)
+	if lf.level >= Critical {
+		l := lf.GetLog(filename)
+		l.Critical(format, args...)
+	}
 }
 
 //警报
 func (lf *LogFiles) Alert(filename, format string, args ...interface{}) {
-	l := lf.GetLog(filename)
-	l.Alert(format, args...)
+	if lf.level >= Alert {
+		l := lf.GetLog(filename)
+		l.Alert(format, args...)
+	}
 }
 
 //紧急
 func (lf *LogFiles) Emergency(filename, format string, args ...interface{}) {
-	l := lf.GetLog(filename)
-	l.Emergency(format, args...)
+	if lf.level >= Emergency {
+		l := lf.GetLog(filename)
+		l.Emergency(format, args...)
+	}
 }
