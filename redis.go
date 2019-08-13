@@ -378,3 +378,18 @@ func (r *RedisUtil) SISMEMBER(key string, member string) bool {
 	}
 	return db.Int64Default(ret) == 1
 }
+
+// 批量获取
+func (r *RedisUtil) MGET(keys ...string) ([]string, error) {
+	rclient := r.pool.Get()
+	args := make([]interface{}, len(keys))
+	for i, v := range keys {
+		args[i] = r.prefix + v
+	}
+	ret, err := rclient.Do("MGET", args)
+	rclient.Close()
+	if err != nil {
+		return nil, err
+	}
+	return db.Strings(ret)
+}
