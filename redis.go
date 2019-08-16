@@ -391,7 +391,7 @@ func (r *RedisUtil) MGET(keys ...string) ([]string, error) {
 	for i, v := range keys {
 		args[i] = r.prefix + v
 	}
-	ret, err := rclient.Do("MGET", args)
+	ret, err := rclient.Do("MGET", args...)
 	rclient.Close()
 	if err != nil {
 		return nil, err
@@ -406,8 +406,8 @@ func (r *RedisUtil) MGETWithKeyPattern(pattern string) ([]*RedisKeyValue, error)
 	if err != nil {
 		return nil, err
 	}
-	args, _ := db.Strings(ret)
-	ret, err = rclient.Do("MGET", args)
+	args, _ := ret.([]interface{})
+	ret, err = rclient.Do("MGET", args...)
 	rclient.Close()
 	if err != nil {
 		return nil, err
@@ -415,7 +415,7 @@ func (r *RedisUtil) MGETWithKeyPattern(pattern string) ([]*RedisKeyValue, error)
 	valueRet, _ := db.Strings(ret)
 	result := make([]*RedisKeyValue, len(args))
 	for i, v := range args {
-		result[i] = &RedisKeyValue{Key: v}
+		result[i] = &RedisKeyValue{Key: db.StringDefault(v)}
 		if len(valueRet) > i {
 			result[i].Value = valueRet[i]
 		}
