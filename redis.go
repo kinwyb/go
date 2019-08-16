@@ -400,7 +400,7 @@ func (r *RedisUtil) MGET(keys ...string) ([]string, error) {
 }
 
 // 按key的正则方式批量获取
-func (r *RedisUtil) MGETWithKeyPattern(pattern string) ([]string, error) {
+func (r *RedisUtil) MGETWithKeyPattern(pattern string) ([]*RedisKeyValue, error) {
 	rclient := r.pool.Get()
 	ret, err := rclient.Do("KEYS", r.prefix+pattern)
 	if err != nil {
@@ -412,10 +412,24 @@ func (r *RedisUtil) MGETWithKeyPattern(pattern string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	return db.Strings(ret)
+	valueRet, _ := db.Strings(ret)
+	result := make([]*RedisKeyValue, len(args))
+	for i, v := range args {
+		result[i] = &RedisKeyValue{Key: v}
+		if len(valueRet) > i {
+			result[i].Value = valueRet[i]
+		}
+	}
+	return result, nil
 }
 
 // redis分布式锁对象
 func (r *RedisUtil) Mutex(key string, options ...redsync.Option) *redsync.Mutex {
 	return r.redsync.NewMutex(r.prefix+key, options...)
+}
+
+// redis键值
+type RedisKeyValue struct {
+	Key   string
+	Value string
 }
