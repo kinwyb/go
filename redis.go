@@ -399,6 +399,22 @@ func (r *RedisUtil) MGET(keys ...string) ([]string, error) {
 	return db.Strings(ret)
 }
 
+// 按key的正则方式批量获取
+func (r *RedisUtil) MGETWithKeyPattern(pattern string) ([]string, error) {
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("KEYS", r.prefix+pattern)
+	if err != nil {
+		return nil, err
+	}
+	args, _ := db.Strings(ret)
+	ret, err = rclient.Do("MGET", args)
+	rclient.Close()
+	if err != nil {
+		return nil, err
+	}
+	return db.Strings(ret)
+}
+
 // redis分布式锁对象
 func (r *RedisUtil) Mutex(key string, options ...redsync.Option) *redsync.Mutex {
 	return r.redsync.NewMutex(r.prefix+key, options...)
