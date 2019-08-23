@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
+	"strings"
 
 	"github.com/kinwyb/go"
 
@@ -12,191 +14,185 @@ import (
 	"github.com/kinwyb/go/logs"
 )
 
-//数据消息
-type TcpMsg struct {
-	ClientID string `description:"客户端标记"`
-	Data     []byte `description:"内容"`
+// tcp服务端配置
+type TcpServerConfig struct {
+	Port               int64                                                  //监听端口
+	ServerAddress      string                                                 //服务监听地址
+	Log                logs.Logger                                            //日志
+	ErrorHandler       func(errType ErrorType, err error, clientID ...string) //错误处理
+	NewClientHandler   func(clientID string) TcpProtocol                      //新客户端连接回调,返回该客户端处理协议,可以返回nil
+	MessageHandler     func(clientID string, msg []byte)                      //消息处理
+	CloseHandler       func()                                                 //服务关闭回调
+	ClientCloseHandler func(clientID string)                                  //客户端关闭回调
 }
-
-// 新连接回调函数
-var NewClientCallBackFun func(client *SClient)
-
-// 客户端断开回调函数
-var ClientDoneCallBackFun func(clientID string)
 
 //TCP服务器对象
 type TcpServer struct {
-	socketErr   chan Error
-	ctx         context.Context
-	nctx        context.Context
-	ncancelFunc context.CancelFunc
-	conn        net.Listener
-	lg          logs.Logger
-	port        int
-	clients     map[string]*SClient
-	readData    chan *TcpMsg //读取到的数据
-	doClose     bool
-	IsClose     <-chan struct{} //关闭channel
+	ctx      context.Context
+	config   *TcpServerConfig
+	conn     net.Listener
+	clients  map[string]*SClient
+	readData chan []byte //读取到的数据
+	doClose  bool        //关闭操作
 }
 
-//新建一个服务端,port为监听端口
-//注意处理channel error 否则程序阻塞无法正常运行
-func NewTcpServer(ctx context.Context, port int) *TcpServer {
-	return &TcpServer{
-		socketErr: make(chan Error, 100),
-		ctx:       ctx,
-		lg:        logs.NewLogger(),
-		port:      port,
-		clients:   map[string]*SClient{},
-		readData:  make(chan *TcpMsg, 1000),
+//新建一个服务端
+func NewTcpServer(ctx context.Context, config *TcpServerConfig) (*TcpServer, error) {
+	if config == nil {
+		return nil, errors.New("配置信息不能为空")
 	}
+	ret := &TcpServer{
+		ctx:     ctx,
+		config:  config,
+		clients: map[string]*SClient{},
+	}
+	return ret, nil
 }
 
-//启动监听该方法会阻塞
+//启动监听该方法会
 func (s *TcpServer) Listen() {
 	var err error
 	s.doClose = false
-	s.nctx, s.ncancelFunc = context.WithCancel(s.ctx)
-	s.IsClose = s.nctx.Done()
-	s.conn, err = net.Listen("tcp", fmt.Sprintf(":%d", s.port))
+	s.conn, err = net.Listen("tcp", fmt.Sprintf("%s:%d", s.config.ServerAddress, s.config.Port))
 	if err != nil {
-		s.lg.Error("查询Socket监听失败:" + err.Error())
-		s.socketErr <- Error{
-			t:   Listen,
-			err: err,
+		if s.config.Log != nil {
+			s.config.Log.Info("查询Socket监听失败:%s", err.Error())
+		}
+		if s.config.ErrorHandler != nil {
+			s.config.ErrorHandler(ListenErr, err)
 		}
 		return
 	}
-	go s.handleConn()
-	select {
-	case <-s.ctx.Done():
-	case <-s.nctx.Done():
+	if s.config.Log != nil {
+		s.config.Log.Info("服务器监听[%s:%d]开启", s.config.ServerAddress, s.config.Port)
 	}
-	s.Close() //关闭
+	go s.handleConn()
+	<-s.ctx.Done()
+	s.Close()
 }
 
 //关闭服务
 func (s *TcpServer) Close() {
-	if s.ncancelFunc != nil {
-		s.ncancelFunc()
-		s.ncancelFunc = nil
-	}
 	s.doClose = true
 	if s.conn != nil {
 		s.conn.Close()
 		s.conn = nil
 	}
-}
-
-//设置日志
-func (s *TcpServer) SetLogger(lg logs.Logger) {
-	s.lg = lg
-}
-
-//获取错误channel
-func (s *TcpServer) Error() <-chan Error {
-	return s.socketErr
+	if s.config.CloseHandler != nil {
+		s.config.CloseHandler()
+	}
+	for _, v := range s.clients {
+		v.Close()
+	}
 }
 
 //处理新连接
 func (s *TcpServer) handleConn() {
+	defer recoverPainc(s.config.Log, s.handleConn)
 	for {
 		if conn, err := s.conn.Accept(); err != nil {
 			if s.doClose { //关闭
 				return
 			}
-			s.lg.Error("监听请求连接失败:" + err.Error())
-			s.socketErr <- Error{
-				t:   Listen,
-				err: err,
+			if s.config.Log != nil {
+				s.config.Log.Error("监听请求连接失败:%s", err.Error())
 			}
+			if s.config.ErrorHandler != nil {
+				s.config.ErrorHandler(ListenErr, err)
+			}
+			s.Close()
+			return
 		} else {
-			sclient := &SClient{
-				conn:     conn,
-				server:   s,
-				protocol: NewProtocol(1000),
-				lg:       s.lg,
-				ID:       heldiamgo.IDGen(),
-			}
-			sclient.ctx, sclient.cancelFunc = context.WithCancel(s.nctx)
-			sclient.IsClose = sclient.ctx.Done()
-			sclient.doClose = false
-			sclient.protocol.SetHeartBeat(heartBeatBytes) //设置心跳
-			go sclient.readData()
-			s.clients[sclient.ID] = sclient
-			if NewClientCallBackFun != nil {
-				NewClientCallBackFun(sclient)
-			}
+			s.newClientAccept(conn)
 		}
 	}
 }
 
 //发送数据
-func (s *TcpServer) Write(msg *TcpMsg) error {
+func (s *TcpServer) Write(clientID string, msg []byte) error {
 	if s.conn == nil {
 		return errors.New("连接已关闭")
 	}
-	client := s.clients[msg.ClientID]
+	client := s.clients[clientID]
 	if client == nil {
 		return errors.New("客户端链接不存在")
 	}
-	_, err := client.conn.Write(client.protocol.Packet(msg.Data))
-	if err != nil {
-		client.Close()
-		return fmt.Errorf("数据发送失败:%s", err.Error())
-	}
-	return nil
+	return client.write(msg)
 }
 
 //读取消息
-func (s *TcpServer) Read() <-chan *TcpMsg {
-	return s.readData
+func (s *TcpServer) messageRecv(clientID string, msg []byte) {
+	if s.config.MessageHandler != nil {
+		s.config.MessageHandler(clientID, msg)
+	}
+}
+
+func (s *TcpServer) newClientAccept(conn net.Conn) {
+	sclient := &SClient{
+		conn:   conn,
+		server: s,
+		ID:     clientIDGen(),
+	}
+	var protocol TcpProtocol
+	if s.config.NewClientHandler != nil {
+		protocol = s.config.NewClientHandler(sclient.ID)
+	}
+	sclient.protocol = protocol
+	sclient.doClose = false
+	go sclient.readData()
+	if protocol != nil {
+		go sclient.recvProtocolMsg()
+	}
+	s.clients[sclient.ID] = sclient
+}
+
+// 客户端id生成器
+func clientIDGen() string {
+	id := heldiamgo.ID()
+	return strings.ToUpper(strconv.FormatUint(id, 32))
 }
 
 //TCP连接到服务器的客户端
 type SClient struct {
-	conn       net.Conn
-	server     *TcpServer
-	protocol   *Protocol
-	ctx        context.Context
-	cancelFunc context.CancelFunc
-	lg         logs.Logger
-	IsClose    <-chan struct{} //关闭channel
-	ID         string          //客户端唯一标示
-	doClose    bool            //关闭
+	conn     net.Conn
+	server   *TcpServer
+	protocol TcpProtocol
+	ID       string //客户端唯一标示
+	doClose  bool   //关闭
 }
 
 //读取客户端数据
 func (s *SClient) readData() {
-	defer func() {
-		if err := recover(); err != nil {
-			s.lg.Error("客户链接[%s]数据读取异常:%s", s.ID, err)
-			s.Close()
-		}
-	}()
+	defer s.Close()
 	data := make([]byte, 1024)
 	for {
 		i, err := s.conn.Read(data)
 		if s.doClose {
 			return
 		} else if err != nil {
-			s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
-			s.server.socketErr <- Error{
-				t:   Read,
-				err: fmt.Errorf("%s=>%s", s.ID, err.Error()),
+			if s.server.config.Log != nil {
+				s.server.config.Log.Error("%s=>数据读取错误:%s", s.ID, err.Error())
 			}
-			s.Close()
+			if s.server.config.ErrorHandler != nil {
+				s.server.config.ErrorHandler(ReadErr, err, s.ID)
+			}
 			return
 		}
-		s.protocol.Unpack(data[0:i])
-		select {
-		case data := <-s.protocol.Read():
-			//todo: tcpmsg可以做池
-			s.server.readData <- &TcpMsg{
-				ClientID: s.ID,
-				Data:     data,
-			}
-		default:
+		if s.protocol != nil {
+			s.protocol.UnPacking(data[0:i])
+		} else {
+			s.server.messageRecv(s.ID, data[0:i])
+		}
+	}
+}
+
+// 获取通讯协议解析出来的消息
+func (s *SClient) recvProtocolMsg() {
+	defer recoverPainc(s.server.config.Log, s.recvProtocolMsg)
+	if s.protocol != nil {
+		for {
+			msg := <-s.protocol.ReadMsg()
+			s.server.messageRecv(s.ID, msg)
 		}
 	}
 }
@@ -206,30 +202,21 @@ func (s *SClient) write(msg []byte) error {
 	if s.conn == nil {
 		return errors.New("连接已关闭")
 	}
-	_, err := s.conn.Write(s.protocol.Packet(msg))
-	if err != nil {
-		return fmt.Errorf("数据发送失败:%s", err.Error())
+	if s.protocol != nil {
+		msg = s.protocol.Packing(msg)
 	}
-	return nil
+	_, err := s.conn.Write(msg)
+	return err
 }
 
 //关闭连接
 func (s *SClient) Close() {
-	if ClientDoneCallBackFun != nil {
-		ClientDoneCallBackFun(s.ID)
-	}
-	if s.cancelFunc != nil {
-		s.cancelFunc()
-		s.cancelFunc = nil
+	if !s.doClose && s.server.config.ClientCloseHandler != nil {
+		s.server.config.ClientCloseHandler(s.ID)
 	}
 	s.doClose = true
 	if s.conn != nil {
 		s.conn.Close()
 		s.conn = nil
-		s.server.socketErr <- Error{
-			t:   Cancel,
-			err: fmt.Errorf("%s", s.ID),
-		}
 	}
-	s.protocol.Reset()
 }

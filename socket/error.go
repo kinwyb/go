@@ -4,16 +4,39 @@ package socket
 type ErrorType int
 
 const (
-	Connect ErrorType = iota //连接错误
-	Read                     //消息读取错误
-	Send                     //消息发送错误
-	Listen                   //服务器监听错误
-	Cancel                   //关闭
+	ConnectErr ErrorType = iota + 1 //连接错误
+	ReadErr                         //消息读取错误
+	SendErr                         //消息发送错误
+	ListenErr                       //服务器监听错误
+	CancelErr                       //关闭[废弃]
 )
+
+func (e ErrorType) String() string {
+	switch e {
+	case ConnectErr:
+		return "连接错误"
+	case ReadErr:
+		return "读取错误"
+	case SendErr:
+		return "发送错误"
+	case ListenErr:
+		return "监听错误"
+	default:
+		return ""
+	}
+}
 
 type Error struct {
 	t   ErrorType //错误类型
 	err error     //错误
+}
+
+// 新增错误
+func NewError(t ErrorType, err error) *Error {
+	return &Error{
+		t:   t,
+		err: err,
+	}
 }
 
 //错误类型

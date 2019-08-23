@@ -1,4 +1,4 @@
-package socket
+package socket_deprecated
 
 //数据打包处理器
 type PackageHandler interface {

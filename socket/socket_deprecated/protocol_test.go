@@ -1,4 +1,4 @@
-package socket
+package socket_deprecated
 
 import (
 	"testing"
