@@ -3,14 +3,13 @@ package socket
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/kinwyb/go/logs"
 )
 
 func Test_NewTcpServer(t *testing.T) {
 	log := logs.NewLogger()
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, _ := context.WithCancel(context.Background())
 	config := &TcpServerConfig{
 		Port:          1222,
 		ServerAddress: "",
@@ -37,9 +36,9 @@ func Test_NewTcpServer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	go func(f func()) {
-		time.Sleep(2 * time.Minute)
-		f()
-	}(cancel)
+	//go func(f func()) {
+	//	time.Sleep(2 * time.Minute)
+	//	f()
+	//}(cancel)
 	server.Listen()
 }

@@ -29,7 +29,7 @@ func NewProtocol(chanLength ...int) *Protocol {
 
 //Packet 封包
 func (p *Protocol) Packing(message []byte) []byte {
-	return append(IntToByte(int64(len(message))), message...)
+	return append(intToByte(int64(len(message))), message...)
 }
 
 //Read 获取数据读取的channel对象
@@ -45,7 +45,7 @@ func (p *Protocol) UnPacking(buffer []byte) {
 		if length < bitlength { //前面8个字节是长度
 			return
 		}
-		p.dataLength = ByteToInt(p.byteBuffer.Bytes()[0:bitlength])
+		p.dataLength = byteToInt(p.byteBuffer.Bytes()[0:bitlength])
 		if int64(length) < p.dataLength+bitlength { //数据长度不够,等待下次读取数据
 			return
 		}
@@ -62,13 +62,12 @@ func (p *Protocol) Reset() {
 	p.byteBuffer.Reset() //清空重新开始
 }
 
-func IntToByte(len int64) []byte {
-	ret := make([]byte, bitlength)
-	binary.PutVarint(ret, len)
+func intToByte(num int64) []byte {
+	ret := make([]byte, 8)
+	binary.BigEndian.PutUint64(ret, uint64(num))
 	return ret
 }
 
-func ByteToInt(data []byte) int64 {
-	x, _ := binary.Varint(data)
-	return x
+func byteToInt(data []byte) int64 {
+	return int64(binary.BigEndian.Uint64(data))
 }

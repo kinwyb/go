@@ -127,6 +127,17 @@ func (s *TcpServer) messageRecv(clientID string, msg []byte) {
 	}
 }
 
+// 关闭指定客户端
+func (s *TcpServer) CloseClient(clientID string) {
+	if c, ok := s.clients[clientID]; ok {
+		if c != nil {
+			c.Close()
+		} else {
+			delete(s.clients, clientID)
+		}
+	}
+}
+
 func (s *TcpServer) newClientAccept(conn net.Conn) {
 	sclient := &SClient{
 		conn:   conn,
@@ -215,6 +226,7 @@ func (s *SClient) Close() {
 		s.server.config.ClientCloseHandler(s.ID)
 	}
 	s.doClose = true
+	delete(s.server.clients, s.ID)
 	if s.conn != nil {
 		s.conn.Close()
 		s.conn = nil

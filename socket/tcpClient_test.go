@@ -13,16 +13,16 @@ func Test_NewTcpClient(t *testing.T) {
 	log := logs.NewLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 	client, err := NewTcpClient(ctx, &TcpClientConfig{
-		ServerAddress:     "127.0.0.1:1222",
-		AutoReConnect:     true,
-		Log:               log,
-		Protocol:          NewProtocol(100),
+		ServerAddress: "127.0.0.1:1200",
+		AutoReConnect: true,
+		Log:           log,
+		//Protocol:          NewProtocol(100),
 		ReConnectWaitTime: 5 * time.Second,
 		ErrorHandler: func(errorType ErrorType, e error) {
 			log.Error("%s => %s", errorType, e.Error())
 		},
 		MessageHandler: func(msg []byte) {
-			log.Info("收到消息: %s", msg)
+			log.Info("收到消息: %s", string(msg))
 		},
 		CloseHandler: func() {
 			log.Info("连接关闭")
@@ -42,7 +42,7 @@ func Test_NewTcpClient(t *testing.T) {
 	if !connect {
 		t.Fatal("服务器连接失败")
 	}
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(1 * time.Second)
 	i := 1
 	for {
 		select {

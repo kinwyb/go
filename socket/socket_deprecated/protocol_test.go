@@ -21,8 +21,8 @@ func TestProtocol_intToByte(t *testing.T) {
 	convey.Convey("IntByte转换", t, func() {
 		for i := 0; i < 10000000; i++ {
 			c := rand.Int63()
-			b := IntToByte(int64(c))
-			x := ByteToInt(b)
+			b := intToByte(int64(c))
+			x := byteToInt(b)
 			convey.So(c, convey.ShouldEqual, x)
 		}
 	})
