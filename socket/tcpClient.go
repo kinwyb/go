@@ -178,13 +178,15 @@ func (c *TcpClient) Close() {
 }
 
 func (c *TcpClient) connectClose() {
-	if c.connectSucc && c.config.CloseHandler != nil {
-		c.config.CloseHandler()
-	}
-	c.connectSucc = false
-	if c.conn != nil {
-		c.conn.Close()
-		c.conn = nil
+	if c.connectSucc {
+		if c.connectSucc && c.config.CloseHandler != nil {
+			c.config.CloseHandler()
+		}
+		c.connectSucc = false
+		if c.conn != nil {
+			c.conn.Close()
+			c.conn = nil
+		}
 	}
 }
 
