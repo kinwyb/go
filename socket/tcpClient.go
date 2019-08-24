@@ -55,8 +55,11 @@ func NewTcpClient(ctx context.Context, config *TcpClientConfig) (*TcpClient, err
 //连接服务器,该方法会阻塞知道连接异常或ctx关闭
 func (c *TcpClient) connectServer() {
 	defer recoverPainc(c.config.Log, c.connectServer)
-	var err error
+	if c.connectSucc {
+		return
+	}
 	c.doClose = false
+	var err error
 	c.conn, err = net.DialTimeout("tcp",
 		c.config.ServerAddress, c.config.ConnectTimeOut)
 	if err != nil {
@@ -94,7 +97,6 @@ func (c *TcpClient) Connect() bool {
 
 //读取数据
 func (c *TcpClient) readData() {
-	defer c.Close()
 	data := make([]byte, 1024)
 	for {
 		i, err := c.conn.Read(data)
@@ -104,6 +106,7 @@ func (c *TcpClient) readData() {
 			if c.config.ErrorHandler != nil {
 				c.config.ErrorHandler(ReadErr, err)
 			}
+			c.connectClose()
 			c.reConnectChan <- true //发起重连接
 			return
 		}
@@ -123,6 +126,8 @@ func (c *TcpClient) stateCheckGoroutine() {
 		case <-c.reConnectChan:
 			if c.connectSucc || !c.config.AutoReConnect { //连接成功或者不需要重连的直接返回
 				continue
+			} else if c.doClose {
+				return
 			}
 			time.Sleep(c.config.ReConnectWaitTime)
 			c.Connect()
@@ -166,11 +171,15 @@ func (c *TcpClient) processMsg() {
 
 //关闭连接
 func (c *TcpClient) Close() {
+	c.doClose = true
+	c.connectClose()
+}
+
+func (c *TcpClient) connectClose() {
 	if c.connectSucc && c.config.CloseHandler != nil {
 		c.config.CloseHandler()
 	}
 	c.connectSucc = false
-	c.doClose = true
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil

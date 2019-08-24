@@ -13,7 +13,7 @@ func Test_NewTcpClient(t *testing.T) {
 	log := logs.NewLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 	client, err := NewTcpClient(ctx, &TcpClientConfig{
-		ServerAddress: "127.0.0.1:1200",
+		ServerAddress: "127.0.0.1:1222",
 		AutoReConnect: true,
 		Log:           log,
 		//Protocol:          NewProtocol(100),
@@ -26,7 +26,7 @@ func Test_NewTcpClient(t *testing.T) {
 		},
 		CloseHandler: func() {
 			log.Info("连接关闭")
-			cancel()
+			//cancel()
 		},
 		ConnectTimeOut: 30 * time.Second,
 	})
@@ -34,7 +34,7 @@ func Test_NewTcpClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	go func(f func()) {
-		time.Sleep(10 * time.Minute)
+		time.Sleep(2 * time.Minute)
 		f()
 	}(cancel)
 	connect := client.Connect()
