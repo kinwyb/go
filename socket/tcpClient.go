@@ -99,10 +99,11 @@ func (c *TcpClient) Connect() bool {
 func (c *TcpClient) readData() {
 	data := make([]byte, 1024)
 	for {
-		i, err := c.conn.Read(data)
-		if c.doClose {
+		if c.conn == nil || c.doClose {
 			return
-		} else if err != nil {
+		}
+		i, err := c.conn.Read(data)
+		if err != nil {
 			if c.config.ErrorHandler != nil {
 				c.config.ErrorHandler(ReadErr, err)
 			}
