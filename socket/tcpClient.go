@@ -103,6 +103,9 @@ func (c *TcpClient) readData() {
 			return
 		}
 		i, err := c.conn.Read(data)
+		if c.doClose {
+			return
+		}
 		if err != nil {
 			if c.config.ErrorHandler != nil {
 				c.config.ErrorHandler(ReadErr, err)
@@ -179,14 +182,14 @@ func (c *TcpClient) Close() {
 
 func (c *TcpClient) connectClose() {
 	if c.connectSucc {
-		if c.connectSucc && c.config.CloseHandler != nil {
+		c.connectSucc = false
+		if c.config.CloseHandler != nil {
 			c.config.CloseHandler()
 		}
-		c.connectSucc = false
-		if c.conn != nil {
-			c.conn.Close()
-			c.conn = nil
-		}
+	}
+	if c.conn != nil {
+		c.conn.Close()
+		c.conn = nil
 	}
 }
 
