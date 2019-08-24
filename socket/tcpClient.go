@@ -126,10 +126,11 @@ func (c *TcpClient) stateCheckGoroutine() {
 		case <-c.reConnectChan:
 			if c.connectSucc || !c.config.AutoReConnect { //连接成功或者不需要重连的直接返回
 				continue
-			} else if c.doClose {
-				return
 			}
 			time.Sleep(c.config.ReConnectWaitTime)
+			if c.doClose {
+				return
+			}
 			c.Connect()
 		case <-c.ctx.Done(): //如果上下文结束,关闭整个连接
 			c.Close()
