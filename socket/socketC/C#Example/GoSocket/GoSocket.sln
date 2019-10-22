@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.28307.168
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Console", "Console\Console.csproj", "{A22E38DB-2E87-4164-A20E-AF4F948CC3D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoSocket", "GoSocket\GoSocket.csproj", "{92F0B507-7E0A-49CC-8009-48FC0001C7D9}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A22E38DB-2E87-4164-A20E-AF4F948CC3D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A22E38DB-2E87-4164-A20E-AF4F948CC3D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A22E38DB-2E87-4164-A20E-AF4F948CC3D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A22E38DB-2E87-4164-A20E-AF4F948CC3D0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{92F0B507-7E0A-49CC-8009-48FC0001C7D9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{92F0B507-7E0A-49CC-8009-48FC0001C7D9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{92F0B507-7E0A-49CC-8009-48FC0001C7D9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{92F0B507-7E0A-49CC-8009-48FC0001C7D9}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {B8081BB2-D2A9-4399-9D1C-891838800DD0}
+	EndGlobalSection
+EndGlobal

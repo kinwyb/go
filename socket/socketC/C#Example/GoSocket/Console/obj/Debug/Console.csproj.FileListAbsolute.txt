@@ -1,0 +1,9 @@
+F:\C#\GoSocket\GoSocket\Console\bin\Debug\Console.exe
+F:\C#\GoSocket\GoSocket\Console\bin\Debug\Console.pdb
+F:\C#\GoSocket\GoSocket\Console\bin\Debug\GoSocket.dll
+F:\C#\GoSocket\GoSocket\Console\bin\Debug\GoSocket.pdb
+F:\C#\GoSocket\GoSocket\Console\obj\Debug\Console.csprojAssemblyReference.cache
+F:\C#\GoSocket\GoSocket\Console\obj\Debug\Console.csproj.CoreCompileInputs.cache
+F:\C#\GoSocket\GoSocket\Console\obj\Debug\Console.csproj.CopyComplete
+F:\C#\GoSocket\GoSocket\Console\obj\Debug\Console.exe
+F:\C#\GoSocket\GoSocket\Console\obj\Debug\Console.pdb

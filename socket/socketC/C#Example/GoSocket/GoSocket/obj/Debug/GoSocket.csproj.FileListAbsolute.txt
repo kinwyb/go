@@ -1,0 +1,6 @@
+F:\C#\GoSocket\GoSocket\GoSocket\bin\Debug\GoSocket.dll
+F:\C#\GoSocket\GoSocket\GoSocket\bin\Debug\GoSocket.pdb
+F:\C#\GoSocket\GoSocket\GoSocket\obj\Debug\GoSocket.csproj.CoreCompileInputs.cache
+F:\C#\GoSocket\GoSocket\GoSocket\obj\Debug\GoSocket.dll
+F:\C#\GoSocket\GoSocket\GoSocket\obj\Debug\GoSocket.pdb
+F:\C#\GoSocket\GoSocket\GoSocket\obj\Debug\GoSocket.csprojAssemblyReference.cache
