@@ -33,6 +33,8 @@ func initSignal() []os.Signal {
 func Listen(fun Func, args ...interface{}) {
 	if fun == nil {
 		return
+	} else if len(signalType) < 1 {
+		signalType = initSignal()
 	}
 	if exitSigle == nil {
 		//创建监听退出chan
