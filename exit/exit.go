@@ -17,6 +17,17 @@ var exitSigle chan os.Signal
 var waitGroup *sync.WaitGroup
 var cancel context.CancelFunc
 var ctx context.Context
+var signalType []os.Signal
+
+// 初始化基础信号
+func initSignal() []os.Signal {
+	return []os.Signal{
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT,
+		syscall.SIGKILL}
+}
 
 //增加退出监控
 func Listen(fun Func, args ...interface{}) {
@@ -38,14 +49,7 @@ func Listen(fun Func, args ...interface{}) {
 			os.Exit(0)
 		}()
 		//监听指定信号 ctrl+c kill
-		signal.Notify(exitSigle,
-			syscall.SIGHUP,
-			syscall.SIGINT,
-			syscall.SIGTERM,
-			syscall.SIGQUIT,
-			syscall.SIGKILL,
-			syscall.SIGUSR1,
-			syscall.SIGUSR2)
+		signal.Notify(exitSigle, signalType...)
 	}
 	waitGroup.Add(1)
 	go func(fun Func, args ...interface{}) {
