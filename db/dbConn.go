@@ -10,13 +10,10 @@ import (
 	"github.com/kinwyb/go/err1"
 )
 
-type ReconnectFunc = func() (*sql.DB, error)
-
 //Conn 操作对象
 type Conn struct {
-	db        *sql.DB
-	dbname    string
-	reconnect ReconnectFunc //重新连接
+	db     *sql.DB
+	dbname string
 }
 
 func (c *Conn) connect() err1.Error {
@@ -24,17 +21,6 @@ func (c *Conn) connect() err1.Error {
 		return c.FormatError(ErrorNotOpen)
 	}
 	if err := c.db.Ping(); err != nil {
-		if c.reconnect != nil {
-			c.db, err = c.reconnect()
-			if err != nil {
-				return c.FormatError(err)
-			} else if c.db == nil {
-				return c.FormatError(ErrorNotOpen)
-			}
-			if err := c.db.Ping(); err == nil {
-				return nil
-			}
-		}
 		return c.FormatError(err)
 	}
 	return nil
@@ -43,11 +29,6 @@ func (c *Conn) connect() err1.Error {
 //设置数据库链接
 func (c *Conn) SetSQLDB(dbSQL *sql.DB) {
 	c.db = dbSQL
-}
-
-// 设置回调函数
-func (c *Conn) SetReconnectFunc(f ReconnectFunc) {
-	c.reconnect = f
 }
 
 //设置数据库名称

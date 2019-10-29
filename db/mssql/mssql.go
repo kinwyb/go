@@ -45,21 +45,15 @@ func Connect(host, username, password, db string) (db.SQL, error) {
 	sqlDB.SetConnMaxLifetime(1 * time.Hour) //一个小时后重置链接
 	result.SetSQLDB(sqlDB)
 	result.SetDataBaseName(db) //记录数据库名称,表名格式化会用到
-	result.SetReconnectFunc(result.reconnect)
 	return result, nil
 }
 
-// 重新连接
-func (m *mssql) reconnect() (*sql.DB, error) {
-	return sql.Open("sqlserver", m.linkString)
-}
-
 //格式化表名称,不做处理直接返回
-func (m *mssql) Table(tbname string) string {
-	if m == nil || m.Conn.DataBaseName() == "" {
+func (c *mssql) Table(tbname string) string {
+	if c == nil || c.Conn.DataBaseName() == "" {
 		return tbname
 	}
-	return "[" + m.Conn.DataBaseName() + "].[dbo].[" + tbname + "]"
+	return "[" + c.Conn.DataBaseName() + "].[dbo].[" + tbname + "]"
 }
 
 //RowsCallbackResult 查询多条数据,结果以回调函数处理
@@ -157,13 +151,13 @@ func (m *mssql) Exec(sql string, args ...interface{}) db.ExecResult {
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mssql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
+func (c *mssql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
 	f := func(tx db.TxSQL) err1.Error {
 		return t(&mssqlTx{
 			TxSQL: tx,
 		})
 	}
-	return m.Conn.Transaction(f, new...)
+	return c.Conn.Transaction(f, new...)
 }
 
 type mssqlTx struct {
