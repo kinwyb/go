@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 
 	"github.com/kinwyb/go/err1"
 	"github.com/micro/protobuf/ptypes"
@@ -41,6 +42,12 @@ func Int(reply interface{}) (int, error) {
 	switch reply := convertInterfacePoint(reply).(type) {
 	case int:
 		return reply, nil
+	case int32:
+		x := int(reply)
+		if int32(x) != reply {
+			return 0, strconv.ErrRange
+		}
+		return x, nil
 	case int64:
 		x := int(reply)
 		if int64(x) != reply {
@@ -84,8 +91,18 @@ func Int64(reply interface{}) (int64, error) {
 	switch reply := convertInterfacePoint(reply).(type) {
 	case int:
 		return int64(reply), nil
+	case int8:
+		return int64(reply), nil
+	case int16:
+		return int64(reply), nil
+	case int32:
+		return int64(reply), nil
 	case int64:
 		return reply, nil
+	case float64:
+		return int64(reply), nil
+	case float32:
+		return int64(reply), nil
 	case []byte:
 		n, err := strconv.ParseInt(string(reply), 10, 64)
 		return n, err
@@ -167,7 +184,7 @@ func Float64(reply interface{}) (float64, error) {
 		n, err := strconv.ParseFloat(string(reply), 64)
 		return n, err
 	case float64:
-		return float64(reply), nil
+		return reply, nil
 	case float32:
 		return float64(reply), nil
 	case int:
@@ -217,6 +234,10 @@ func String(reply interface{}) (string, error) {
 		return strconv.FormatInt(reply, 10), nil
 	case int32:
 		return strconv.FormatInt(int64(reply), 10), nil
+	case int:
+		return strconv.FormatInt(int64(reply), 10), nil
+	case time.Time:
+		return reply.Format("2006-01-02 15:04:05"), nil
 	case float64:
 		return strconv.FormatFloat(reply, 'f', -1, 64), nil
 	case float32:
@@ -283,6 +304,8 @@ func BytesDefault(reply interface{}, def ...[]byte) []byte {
 //  other           false, error
 func Bool(reply interface{}) (bool, error) {
 	switch reply := convertInterfacePoint(reply).(type) {
+	case bool:
+		return reply, nil
 	case int64:
 		return reply != 0, nil
 	case []byte:

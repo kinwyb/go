@@ -259,7 +259,28 @@ func (m *mssqlTx) Exec(sql string, args ...interface{}) db.ExecResult {
 
 // sqlserver解码
 func UniqueIdentifierToString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
 	i := sqlserver.UniqueIdentifier{}
 	i.Scan(v)
 	return i.String()
+}
+
+// 日期时间转换成字符串
+func DateTimeToString(v interface{}, layout ...string) string {
+	if v == nil {
+		return ""
+	}
+	lay := "2006-01-02 15:04:05"
+	if len(layout) > 0 {
+		lay = layout[0]
+	}
+	switch v.(type) {
+	case time.Time:
+		t := v.(time.Time)
+		return t.Format(lay)
+	default:
+		return db.StringDefault(v, "")
+	}
 }

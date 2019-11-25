@@ -54,6 +54,7 @@ require (
 	github.com/vmihailenco/msgpack v4.0.0+incompatible
 	github.com/vrischmann/go-metrics-influxdb v0.0.0-20190121110601-4457d7e0175c
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
+	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 // indirect
 	golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f // indirect
 	golang.org/x/tools v0.0.0-20190208222737-3744606dbb67
 	google.golang.org/appengine v1.4.0 // indirect
