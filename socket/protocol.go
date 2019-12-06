@@ -3,27 +3,32 @@ package socket
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 )
 
-const bitlength = 10 //数据长度占用字节数
+const bitlength = 8 //数据长度占用字节数
 
 //Protocol 自定义协议解析
 type Protocol struct {
-	data       chan []byte   //解析成功的数据
-	byteBuffer *bytes.Buffer //数据存储中心
-	dataLength int64         //当前消息数据长度
+	data             chan []byte   //解析成功的数据
+	byteBuffer       *bytes.Buffer //数据存储中心
+	dataLength       int64         //当前消息数据长度
+	heartBeatData    []byte        //心跳内容
+	heartBeatDataHex string        //心跳内容字符串
 }
 
 //NewProtocol 初始化一个Protocol
 // chanLength为解析成功数据channel缓冲长度
-func NewProtocol(chanLength ...int) *Protocol {
+func NewProtocol(heartBeatData []byte, chanLength ...int) *Protocol {
 	length := 100
 	if chanLength != nil && len(chanLength) > 0 {
 		length = chanLength[0]
 	}
 	return &Protocol{
-		data:       make(chan []byte, length),
-		byteBuffer: bytes.NewBufferString(""),
+		data:             make(chan []byte, length),
+		byteBuffer:       bytes.NewBufferString(""),
+		heartBeatData:    heartBeatData,
+		heartBeatDataHex: hex.EncodeToString(heartBeatData),
 	}
 }
 
@@ -52,6 +57,10 @@ func (p *Protocol) UnPacking(buffer []byte) {
 		data := make([]byte, p.dataLength+bitlength)
 		p.byteBuffer.Read(data)
 		msg := data[bitlength:]
+		if p.heartBeatData != nil && len(msg) == len(p.heartBeatData) &&
+			p.heartBeatDataHex == hex.EncodeToString(msg) {
+			continue
+		}
 		p.data <- msg
 	}
 }

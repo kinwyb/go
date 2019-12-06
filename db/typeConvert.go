@@ -107,7 +107,7 @@ func Int64(reply interface{}) (int64, error) {
 		n, err := strconv.ParseInt(string(reply), 10, 64)
 		return n, err
 	case string:
-		n, err := strconv.ParseInt(string(reply), 10, 64)
+		n, err := strconv.ParseInt(reply, 10, 64)
 		return n, err
 	case nil:
 		return 0, ErrNil
