@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kinwyb/go/err1"
@@ -55,10 +56,10 @@ func Int(reply interface{}) (int, error) {
 		}
 		return x, nil
 	case []byte:
-		n, err := strconv.ParseInt(string(reply), 10, 0)
+		n, err := strconv.ParseInt(strings.TrimSpace(string(reply)), 10, 0)
 		return int(n), err
 	case string:
-		n, err := strconv.ParseInt(string(reply), 10, 64)
+		n, err := strconv.ParseInt(strings.TrimSpace(reply), 10, 64)
 		return int(n), err
 	case nil:
 		return 0, ErrNil
@@ -104,10 +105,10 @@ func Int64(reply interface{}) (int64, error) {
 	case float32:
 		return int64(reply), nil
 	case []byte:
-		n, err := strconv.ParseInt(string(reply), 10, 64)
+		n, err := strconv.ParseInt(strings.TrimSpace(string(reply)), 10, 64)
 		return n, err
 	case string:
-		n, err := strconv.ParseInt(reply, 10, 64)
+		n, err := strconv.ParseInt(strings.TrimSpace(reply), 10, 64)
 		return n, err
 	case nil:
 		return 0, ErrNil
@@ -144,10 +145,10 @@ func Uint64(reply interface{}) (uint64, error) {
 		}
 		return uint64(reply), nil
 	case []byte:
-		n, err := strconv.ParseUint(string(reply), 10, 64)
+		n, err := strconv.ParseUint(strings.TrimSpace(string(reply)), 10, 64)
 		return n, err
 	case string:
-		n, err := strconv.ParseUint(string(reply), 10, 64)
+		n, err := strconv.ParseUint(strings.TrimSpace(reply), 10, 64)
 		return n, err
 	case nil:
 		return 0, ErrNil
@@ -178,10 +179,10 @@ func Uint64Default(reply interface{}, def ...uint64) uint64 {
 func Float64(reply interface{}) (float64, error) {
 	switch reply := convertInterfacePoint(reply).(type) {
 	case []byte:
-		n, err := strconv.ParseFloat(string(reply), 64)
+		n, err := strconv.ParseFloat(strings.TrimSpace(string(reply)), 64)
 		return n, err
 	case string:
-		n, err := strconv.ParseFloat(string(reply), 64)
+		n, err := strconv.ParseFloat(strings.TrimSpace(reply), 64)
 		return n, err
 	case float64:
 		return reply, nil
@@ -227,9 +228,9 @@ func Float64Default(reply interface{}, def ...float64) float64 {
 func String(reply interface{}) (string, error) {
 	switch reply := convertInterfacePoint(reply).(type) {
 	case []byte:
-		return string(reply), nil
+		return strings.TrimSpace(string(reply)), nil
 	case string:
-		return reply, nil
+		return strings.TrimSpace(reply), nil
 	case int64:
 		return strconv.FormatInt(reply, 10), nil
 	case int32:
@@ -309,7 +310,7 @@ func Bool(reply interface{}) (bool, error) {
 	case int64:
 		return reply != 0, nil
 	case []byte:
-		return strconv.ParseBool(string(reply))
+		return strconv.ParseBool(strings.TrimSpace(string(reply)))
 	case nil:
 		return false, ErrNil
 	case err1.Error:
@@ -369,7 +370,7 @@ func Strings(reply interface{}) ([]string, error) {
 			if !ok {
 				return nil, fmt.Errorf("redigo: unexpected element type for Strings, got type %T", reply[i])
 			}
-			result[i] = string(p)
+			result[i] = strings.TrimSpace(string(p))
 		}
 		return result, nil
 	case nil:
@@ -423,7 +424,7 @@ func StringMap(result interface{}) (map[string]string, error) {
 		if !okKey || !okValue {
 			return nil, errors.New("redigo: ScanMap key not a bulk string value")
 		}
-		m[string(key)] = string(value)
+		m[string(key)] = strings.TrimSpace(string(value))
 	}
 	return m, nil
 }

@@ -36,8 +36,9 @@ func SetSQL(obj interface{}) (string, []interface{}) {
 			if (value.Kind() == reflect.Ptr && value.IsNil()) || tags.IsEmpty(value) {
 				continue
 			}
+			buf.WriteString("`")
 			buf.WriteString(v)
-			buf.WriteString(" = ?,")
+			buf.WriteString("` = ?,")
 			retinterface = append(retinterface, tags.GetPtrInterface(value))
 		}
 	}
