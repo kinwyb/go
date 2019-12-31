@@ -5,9 +5,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/xwb1989/sqlparser"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -49,11 +49,8 @@ func Connect(host, username, password, db string) (db.SQL, error) {
 }
 
 //格式化表名称,不做处理直接返回
-func (c *mssql) Table(tbname string) string {
-	if c == nil || c.Conn.DataBaseName() == "" {
-		return tbname
-	}
-	return "[" + c.Conn.DataBaseName() + "].[dbo].[" + tbname + "]"
+func (m *mssql) Table(tbname string) string {
+	return tbname
 }
 
 //RowsCallbackResult 查询多条数据,结果以回调函数处理
@@ -116,8 +113,38 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	if page == nil {
 		return m.QueryRows(sql, args...)
 	}
-	countsql := "select count(0) num from (" + sql + ") as total"
-	result := m.QueryRow(countsql, args...)
+	sql = strings.ReplaceAll(sql, "?", "@")
+	stmt, err := sqlparser.Parse(sql)
+	if err != nil {
+		return db.ErrQueryResult(err1.NewError(-1, "sql语句解析错误:"+err.Error()))
+	}
+	selectColumn := ""
+	from := ""
+	where := ""
+	orderBy := ""
+	switch stmt := stmt.(type) {
+	case *sqlparser.Select:
+		buf := sqlparser.NewTrackedBuffer(nil)
+		stmt.SelectExprs.Format(buf)
+		selectColumn = buf.String()
+		buf.Reset()
+		stmt.From.Format(buf)
+		from = buf.String()
+		buf.Reset()
+		stmt.Where.Format(buf)
+		where = buf.String()
+		buf.Reset()
+		stmt.OrderBy.Format(buf)
+		orderBy = buf.String()
+	default:
+		return db.ErrQueryResult(err1.NewError(-1, "只支持select语句"))
+	}
+	where = strings.ReplaceAll(where, "@", "?")
+	sqlBuilder := strings.Builder{}
+	sqlBuilder.WriteString("SELECT count(0) num FROM ")
+	sqlBuilder.WriteString(from)
+	sqlBuilder.WriteString(where)
+	result := m.QueryRows(sqlBuilder.String(), args...)
 	count := db.Int64Default(result.Get("num"))
 	page.SetTotal(count)
 	currentpage := 0
@@ -127,9 +154,20 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	if count < 1 {
 		return db.NewQueryResult(nil, nil)
 	}
-	sql = strings.Replace(sql, "SELECT ",
-		"SELECT TOP "+strconv.FormatInt(int64(currentpage*page.Rows), 10)+","+strconv.FormatInt(int64(page.Rows), 10),
-		1)
+	sqlBuilder.Reset()
+	sqlBuilder.WriteString("SELECT TOP ")
+	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows)))
+	sqlBuilder.WriteString(" * FROM (SELECT ROW_NUMBER() OVER (")
+	sqlBuilder.WriteString(orderBy)
+	sqlBuilder.WriteString(") as RowNumber,")
+	sqlBuilder.WriteString(selectColumn)
+	sqlBuilder.WriteString(" FROM ")
+	sqlBuilder.WriteString(from)
+	sqlBuilder.WriteString(where)
+	sqlBuilder.WriteString(") as tmp WHERE RowNumber > ")
+	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows * currentpage)))
+	sqlBuilder.WriteString(" ORDER BY RowNumber ASC ")
+	sql = sqlBuilder.String()
 	return m.QueryRows(sql, args...)
 }
 
@@ -151,13 +189,13 @@ func (m *mssql) Exec(sql string, args ...interface{}) db.ExecResult {
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (c *mssql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
+func (m *mssql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
 	f := func(tx db.TxSQL) err1.Error {
 		return t(&mssqlTx{
 			TxSQL: tx,
 		})
 	}
-	return c.Conn.Transaction(f, new...)
+	return m.Conn.Transaction(f, new...)
 }
 
 type mssqlTx struct {
@@ -219,13 +257,46 @@ func (m *mssqlTx) ParseSQL(sql string, args map[string]interface{}) (string, []i
 	return sql, nil, nil
 }
 
+//格式化表名称,不做处理直接返回
+func (m *mssqlTx) Table(tbname string) string {
+	return tbname
+}
+
 //RowsPage 分页查询
 func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{}) db.QueryResult {
 	if page == nil {
 		return m.QueryRows(sql, args...)
 	}
-	countsql := "select count(0) num from (" + sql + ") as total"
-	result := m.QueryRow(countsql, args...)
+	stmt, err := sqlparser.Parse(sql)
+	if err != nil {
+		return db.ErrQueryResult(err1.NewError(-1, "sql语句解析错误:"+err.Error()))
+	}
+	selectColumn := ""
+	from := ""
+	where := ""
+	orderBy := ""
+	switch stmt := stmt.(type) {
+	case *sqlparser.Select:
+		buf := sqlparser.NewTrackedBuffer(nil)
+		stmt.SelectExprs.Format(buf)
+		selectColumn = buf.String()
+		buf.Reset()
+		stmt.From.Format(buf)
+		from = buf.String()
+		buf.Reset()
+		stmt.Where.Format(buf)
+		where = buf.String()
+		buf.Reset()
+		stmt.OrderBy.Format(buf)
+		orderBy = buf.String()
+	default:
+		return db.ErrQueryResult(err1.NewError(-1, "只支持select语句"))
+	}
+	sqlBuilder := strings.Builder{}
+	sqlBuilder.WriteString("SELECT count(0) num FROM ")
+	sqlBuilder.WriteString(from)
+	sqlBuilder.WriteString(where)
+	result := m.QueryRows(sqlBuilder.String(), args...)
 	count := db.Int64Default(result.Get("num"))
 	page.SetTotal(count)
 	currentpage := 0
@@ -235,9 +306,20 @@ func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 	if count < 1 {
 		return db.NewQueryResult(nil, nil)
 	}
-	sql = strings.Replace(sql, "SELECT ",
-		"SELECT TOP "+strconv.FormatInt(int64(currentpage*page.Rows), 10)+","+strconv.FormatInt(int64(page.Rows), 10),
-		1)
+	sqlBuilder.Reset()
+	sqlBuilder.WriteString("SELECT TOP ")
+	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows)))
+	sqlBuilder.WriteString(" * FROM (SELECT ROW_NUMBER() OVER (")
+	sqlBuilder.WriteString(orderBy)
+	sqlBuilder.WriteString(") as RowNumber,")
+	sqlBuilder.WriteString(selectColumn)
+	sqlBuilder.WriteString(" FROM ")
+	sqlBuilder.WriteString(from)
+	sqlBuilder.WriteString(where)
+	sqlBuilder.WriteString(") as tmp WHERE RowNumber > ")
+	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows * currentpage)))
+	sqlBuilder.WriteString(" ORDER BY RowNumber ASC ")
+	sql = sqlBuilder.String()
 	return m.QueryRows(sql, args...)
 }
 
@@ -268,18 +350,14 @@ func UniqueIdentifierToString(v interface{}) string {
 }
 
 // 日期时间转换成字符串
-func DateTimeToString(v interface{}, layout ...string) string {
+func DateTimeToString(v interface{}) string {
 	if v == nil {
 		return ""
-	}
-	lay := "2006-01-02 15:04:05"
-	if len(layout) > 0 {
-		lay = layout[0]
 	}
 	switch v.(type) {
 	case time.Time:
 		t := v.(time.Time)
-		return t.Format(lay)
+		return t.Format("2006-01-02 15:04:05")
 	default:
 		return db.StringDefault(v, "")
 	}
