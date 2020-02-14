@@ -3,6 +3,7 @@ package tags
 import (
 	"bytes"
 	"encoding/gob"
+	"github.com/kinwyb/go/conv"
 	"reflect"
 	"sync"
 )
@@ -111,35 +112,35 @@ func SetMapValue(obj interface{}, m map[string]interface{}) {
 		}
 		switch d.Type().String() {
 		case "*string":
-			str, err := String(m[v])
+			str, err := conv.ToStringE(m[v])
 			if err != nil {
 				break
 			}
 			d.Set(reflect.ValueOf(&str))
 		case "*int":
-			it, err := Int(m[v])
+			it, err := conv.ToIntE(m[v])
 			if err != nil {
 				break
 			}
 			d.Set(reflect.ValueOf(&it))
 		case "*int64":
-			it, err := Int64(m[v])
+			it, err := conv.ToInt64E(m[v])
 			if err != nil {
 				break
 			}
 			d.Set(reflect.ValueOf(&it))
 		case "*float64":
-			it, err := Float64(m[v])
+			it, err := conv.ToFloat64E(m[v])
 			if err != nil {
 				break
 			}
 			d.Set(reflect.ValueOf(&it))
 		case "string":
-			d.SetString(StringDefault(m[v], ""))
+			d.SetString(conv.ToString(m[v]))
 		case "int", "int64":
-			d.SetInt(Int64Default(m[v], 0))
+			d.SetInt(conv.ToInt64(m[v]))
 		case "float32", "float64":
-			d.SetFloat(Float64Default(m[v], 0))
+			d.SetFloat(conv.ToFloat64(m[v]))
 		}
 	}
 }
