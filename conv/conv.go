@@ -2,8 +2,28 @@ package conv
 
 import (
 	"github.com/spf13/cast"
+	"reflect"
 	"time"
 )
+
+// From html/template/content.go
+// Copyright 2011 The Go Authors. All rights reserved.
+// indirect returns the value, after dereferencing as many times
+// as necessary to reach the base type (or nil).
+func indirect(a interface{}) interface{} {
+	if a == nil {
+		return nil
+	}
+	if t := reflect.TypeOf(a); t.Kind() != reflect.Ptr {
+		// Avoid creating a reflect.Value if it's not a pointer.
+		return a
+	}
+	v := reflect.ValueOf(a)
+	for v.Kind() == reflect.Ptr && !v.IsNil() {
+		v = v.Elem()
+	}
+	return v.Interface()
+}
 
 // ToBool casts an interface to a bool type.
 func ToBool(i interface{}) bool {
@@ -172,78 +192,100 @@ func ToDurationSlice(i interface{}) []time.Duration {
 	return v
 }
 
+func checkByteArray(i interface{}) interface{} {
+	if v, ok := indirect(i).([]byte); ok {
+		i = string(v)
+	}
+	return i
+}
+
 // ToBool casts an interface to a bool type.
 func ToBoolE(i interface{}) (bool, error) {
+	i = checkByteArray(i)
 	return cast.ToBoolE(i)
 }
 
 // ToTime casts an interface to a time.Time type.
 func ToTimeE(i interface{}) (time.Time, error) {
+	i = checkByteArray(i)
 	return cast.ToTimeE(i)
 }
 
 // ToDuration casts an interface to a time.Duration type.
 func ToDurationE(i interface{}) (time.Duration, error) {
+	i = checkByteArray(i)
 	return cast.ToDurationE(i)
 }
 
 // ToFloat64 casts an interface to a float64 type.
 func ToFloat64E(i interface{}) (float64, error) {
+	i = checkByteArray(i)
 	return cast.ToFloat64E(i)
 }
 
 // ToFloat32 casts an interface to a float32 type.
 func ToFloat32E(i interface{}) (float32, error) {
+	i = checkByteArray(i)
 	return cast.ToFloat32E(i)
 }
 
 // ToInt64 casts an interface to an int64 type.
 func ToInt64E(i interface{}) (int64, error) {
+	i = checkByteArray(i)
 	return cast.ToInt64E(i)
 }
 
 // ToInt32 casts an interface to an int32 type.
 func ToInt32E(i interface{}) (int32, error) {
+	i = checkByteArray(i)
 	return cast.ToInt32E(i)
 }
 
 // ToInt16 casts an interface to an int16 type.
 func ToInt16E(i interface{}) (int16, error) {
+	i = checkByteArray(i)
 	return cast.ToInt16E(i)
 }
 
 // ToInt8 casts an interface to an int8 type.
 func ToInt8E(i interface{}) (int8, error) {
+	i = checkByteArray(i)
 	return cast.ToInt8E(i)
 }
 
 // ToInt casts an interface to an int type.
 func ToIntE(i interface{}) (int, error) {
+	i = checkByteArray(i)
 	return cast.ToIntE(i)
 }
 
 // ToUint casts an interface to a uint type.
 func ToUintE(i interface{}) (uint, error) {
+	i = checkByteArray(i)
 	return cast.ToUintE(i)
 }
 
 // ToUint64 casts an interface to a uint64 type.
 func ToUint64E(i interface{}) (uint64, error) {
+	i = checkByteArray(i)
 	return cast.ToUint64E(i)
 }
 
 // ToUint32 casts an interface to a uint32 type.
 func ToUint32E(i interface{}) (uint32, error) {
+	i = checkByteArray(i)
 	return cast.ToUint32E(i)
 }
 
 // ToUint16 casts an interface to a uint16 type.
 func ToUint16E(i interface{}) (uint16, error) {
+	i = checkByteArray(i)
 	return cast.ToUint16E(i)
 }
 
 // ToUint8 casts an interface to a uint8 type.
 func ToUint8E(i interface{}) (uint8, error) {
+	i = checkByteArray(i)
 	return cast.ToUint8E(i)
 }
 
