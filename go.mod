@@ -4,6 +4,8 @@ replace golang.org/x/text v0.3.0 => github.com/golang/text v0.3.0
 
 replace golang.org/x/sys v0.0.0-20180909124046-d0be0721c37e => github.com/golang/sys v0.0.0-20180909124046-d0be0721c37e
 
+replace golang.org/x/sys v0.0.0-20190422165155-953cdadca894 => github.com/golang/sys v0.0.0-20190422165155-953cdadca894
+
 replace golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f => github.com/golang/sync v0.0.0-20180314180146-1d60e4601c6f
 
 replace golang.org/x/net v0.0.0-20180906233101-161cd47e91fd => github.com/golang/net v0.0.0-20180906233101-161cd47e91fd
@@ -34,16 +36,20 @@ require (
 	github.com/influxdata/influxdb1-client v0.0.0-20190402204710-8ff2fc3824fc // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
+	github.com/lestrrat-go/file-rotatelogs v2.3.0+incompatible
+	github.com/lestrrat-go/strftime v1.0.1 // indirect
 	github.com/micro/protobuf v0.0.0-20180321161605-ebd3be6d4fdb
 	github.com/onsi/gomega v1.4.2 // indirect
 	github.com/opentracing/opentracing-go v1.0.2
 	github.com/pborman/uuid v1.2.0
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pquerna/ffjson v0.0.0-20180717144149-af8b230fcd20
 	github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a
+	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/shirou/gopsutil v2.18.12+incompatible
 	github.com/shirou/w32 v0.0.0-20160930032740-bb4de0191aa4 // indirect
-	github.com/sirupsen/logrus v1.0.6 // indirect
+	github.com/sirupsen/logrus v1.4.2
 	github.com/smartystreets/assertions v0.0.0-20180820201707-7c9eb446e3cf // indirect
 	github.com/smartystreets/goconvey v0.0.0-20180222194500-ef6db91d284a
 	github.com/soheilhy/cmux v0.1.4 // indirect
