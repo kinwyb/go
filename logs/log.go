@@ -5,7 +5,7 @@ import (
 )
 
 var DefaultJsonFormatter = logrus.JSONFormatter{
-	TimestampFormat: "2006-01-02 15:04:05",
+	TimestampFormat: "2006-01-02 15:04:05.999",
 	FieldMap: logrus.FieldMap{
 		logrus.FieldKeyTime:  "@timestamp",
 		logrus.FieldKeyLevel: "@level",
@@ -15,7 +15,7 @@ var DefaultJsonFormatter = logrus.JSONFormatter{
 }
 var DefaultTextFormatter = logrus.TextFormatter{
 	DisableColors:   true,
-	TimestampFormat: "2006-01-02 15:04:05",
+	TimestampFormat: "2006-01-02 15:04:05.999",
 }
 var DefaultColorTextFormatter = logrus.TextFormatter{
 	DisableColors:             false,
@@ -34,7 +34,7 @@ func New() *Logger {
 	ret := &Logger{
 		Logger: logrus.New(),
 	}
-	format := DefaultColorTextFormatter
+	format := DefaultTextFormatter
 	ret.Logger.SetFormatter(&format)
 	ret.Logger.AddHook(&lineHook{
 		Field: "source",
