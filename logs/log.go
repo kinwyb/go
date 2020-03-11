@@ -6,6 +6,26 @@ import (
 	slog "log/syslog"
 )
 
+var DefaultJsonFormatter = logrus.JSONFormatter{
+	TimestampFormat: "2006-01-02 15:04:05",
+	FieldMap: logrus.FieldMap{
+		logrus.FieldKeyTime:  "@timestamp",
+		logrus.FieldKeyLevel: "@level",
+		logrus.FieldKeyMsg:   "@message",
+		logrus.FieldKeyFunc:  "@caller",
+	},
+}
+var DefaultTextFormatter = logrus.TextFormatter{
+	DisableColors:   true,
+	TimestampFormat: "2006-01-02 15:04:05",
+}
+var DefaultColorTextFormatter = logrus.TextFormatter{
+	DisableColors:   false,
+	ForceColors:     true,
+	FullTimestamp:   true,
+	TimestampFormat: "2006-01-02 15:04:05",
+}
+
 type Logger struct {
 	*logrus.Logger
 }
@@ -23,33 +43,14 @@ func New() *Logger {
 }
 
 // 日志输入到文件
-func (l *Logger) ToFile(logPath string, maxDay uint) {
+func (l *Logger) ToFile(logPath string, maxDay uint, format logrus.Formatter) {
+	l.Logger.SetFormatter(format)
 	newFileWriter(logPath, maxDay, l.Logger)
 }
 
 // 附加输出到文件
-func (l *Logger) HookToFile(logPath string, maxDay uint) {
-	l.Logger.AddHook(newFileHook(logPath, maxDay, l.Logger))
-}
-
-func (l *Logger) EnableJsonFormat() {
-	l.Logger.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat: "2006-01-02 15:04:05",
-		FieldMap: logrus.FieldMap{
-			logrus.FieldKeyTime:  "@timestamp",
-			logrus.FieldKeyLevel: "@level",
-			logrus.FieldKeyMsg:   "@message",
-			logrus.FieldKeyFunc:  "@caller",
-		},
-	})
-}
-
-func (l *Logger) EnableTextFormat(disableColor bool) {
-	l.Logger.SetFormatter(&logrus.TextFormatter{
-		ForceColors:     !disableColor,
-		DisableColors:   disableColor,
-		TimestampFormat: "2006-01-02 15:04:05",
-	})
+func (l *Logger) HookToFile(logPath string, maxDay uint, format logrus.Formatter) {
+	l.Logger.AddHook(newFileHook(logPath, maxDay, l.Logger, format))
 }
 
 // 日志输入到syslog
@@ -90,6 +91,7 @@ func GetDefaultLogger() *Logger {
 func Tracef(format string, args ...interface{}) {
 	defaultLog.Tracef(format, args...)
 }
+
 func Debugf(format string, args ...interface{}) {
 	defaultLog.Debugf(format, args...)
 }
