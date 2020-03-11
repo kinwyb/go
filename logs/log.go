@@ -2,8 +2,6 @@ package logs
 
 import (
 	"github.com/sirupsen/logrus"
-	"github.com/sirupsen/logrus/hooks/syslog"
-	slog "log/syslog"
 )
 
 var DefaultJsonFormatter = logrus.JSONFormatter{
@@ -20,10 +18,11 @@ var DefaultTextFormatter = logrus.TextFormatter{
 	TimestampFormat: "2006-01-02 15:04:05",
 }
 var DefaultColorTextFormatter = logrus.TextFormatter{
-	DisableColors:   false,
-	ForceColors:     true,
-	FullTimestamp:   true,
-	TimestampFormat: "2006-01-02 15:04:05.999",
+	DisableColors:             false,
+	ForceColors:               true,
+	FullTimestamp:             true,
+	EnvironmentOverrideColors: true,
+	TimestampFormat:           "2006-01-02 15:04:05.999",
 }
 
 type Logger struct {
@@ -54,30 +53,6 @@ func (l *Logger) ToFile(logPath string, maxDay uint, format logrus.Formatter) {
 // 附加输出到文件
 func (l *Logger) HookToFile(logPath string, maxDay uint, format logrus.Formatter) {
 	l.Logger.AddHook(newFileHook(logPath, maxDay, l.Logger, format))
-}
-
-// 日志输入到syslog
-func (l *Logger) HookToSysLog(network, raddr string, priority slog.Priority, tag string) error {
-	hook, err := syslog.NewSyslogHook(network, raddr, priority, tag)
-	if err != nil {
-		l.Error("Unable to connect to local syslog daemon")
-		return err
-	}
-	l.AddHook(hook)
-	return nil
-}
-
-func (l *Logger) ToSysLog(network, raddr string, priority slog.Priority, tag string) error {
-	hook, err := syslog.NewSyslogHook(network, raddr, priority, tag)
-	if err != nil {
-		l.Error("Unable to connect to local syslog daemon")
-		return err
-	}
-	l.SetOutput(hook.Writer)
-	l.ExitFunc = func(code int) {
-		hook.Writer.Close()
-	}
-	return nil
 }
 
 // 输入到elasticsearch https://github.com/sohlich/elogrus
