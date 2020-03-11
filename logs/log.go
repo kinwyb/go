@@ -35,8 +35,11 @@ func New() *Logger {
 	ret := &Logger{
 		Logger: logrus.New(),
 	}
+	format := DefaultColorTextFormatter
+	ret.Logger.SetFormatter(&format)
 	ret.Logger.AddHook(&lineHook{
 		Field: "source",
+		Skip:  3,
 	})
 	ret.Logger.SetLevel(logrus.TraceLevel)
 	return ret
