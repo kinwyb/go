@@ -24,6 +24,7 @@ func (l *Logger) ToSysLog(network, raddr string, priority slog.Priority, tag str
 		l.Error("Unable to connect to local syslog daemon")
 		return err
 	}
+	l.EnableSource()
 	l.SetOutput(hook.Writer)
 	l.ExitFunc = func(code int) {
 		hook.Writer.Close()

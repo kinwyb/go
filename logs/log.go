@@ -27,26 +27,35 @@ var DefaultColorTextFormatter = logrus.TextFormatter{
 
 type Logger struct {
 	*logrus.Logger
+	enableSource bool
 }
 
 // 新建一个日志文件
 func New() *Logger {
 	ret := &Logger{
-		Logger: logrus.New(),
+		Logger:       logrus.New(),
+		enableSource: false,
 	}
 	format := DefaultTextFormatter
 	ret.Logger.SetFormatter(&format)
-	ret.Logger.AddHook(&lineHook{
+	ret.Logger.SetLevel(logrus.TraceLevel)
+	return ret
+}
+
+func (l *Logger) EnableSource() {
+	if l.enableSource {
+		return
+	}
+	l.Logger.AddHook(&lineHook{
 		Field: "source",
 		Skip:  3,
 	})
-	ret.Logger.SetLevel(logrus.TraceLevel)
-	return ret
 }
 
 // 日志输入到文件
 func (l *Logger) ToFile(logPath string, maxDay uint, format logrus.Formatter) {
 	l.Logger.SetFormatter(format)
+	l.EnableSource() //只写入文件时候
 	newFileWriter(logPath, maxDay, l.Logger)
 }
 
