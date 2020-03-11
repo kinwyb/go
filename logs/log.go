@@ -23,7 +23,7 @@ var DefaultColorTextFormatter = logrus.TextFormatter{
 	DisableColors:   false,
 	ForceColors:     true,
 	FullTimestamp:   true,
-	TimestampFormat: "2006-01-02 15:04:05",
+	TimestampFormat: "2006-01-02 15:04:05.999",
 }
 
 type Logger struct {
