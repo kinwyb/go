@@ -10,10 +10,10 @@ type TcpProtocol interface {
 }
 
 //异常处理
-func recoverPainc(lg logs.Logger, f ...func()) {
+func recoverPainc(lg *logs.Logger, f ...func()) {
 	if r := recover(); r != nil {
 		if lg != nil {
-			lg.Emergency("异常:%s", r)
+			lg.Fatalf("异常:%s", r)
 		}
 		if f != nil {
 			for _, fu := range f {

@@ -17,7 +17,7 @@ type RedisUtil struct {
 	prefix  string      //前缀
 	debug   bool
 	redsync *redsync.Redsync //分布式锁对象
-	log     logs.Logger
+	log     *logs.Logger
 }
 
 //初始化redis,host=地址，password密码,db数据名称，maxidle最大有效连接数,active 最大可用连接数
@@ -69,7 +69,7 @@ func (r *RedisUtil) Prefix() string {
 }
 
 //设置日志
-func (r *RedisUtil) SetLogger(lg logs.Logger) {
+func (r *RedisUtil) SetLogger(lg *logs.Logger) {
 	r.log = lg
 }
 

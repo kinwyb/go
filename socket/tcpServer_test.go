@@ -8,7 +8,7 @@ import (
 )
 
 func Test_NewTcpServer(t *testing.T) {
-	log := logs.NewLogger()
+	log := logs.GetDefaultLogger()
 	ctx, _ := context.WithCancel(context.Background())
 	config := &TcpServerConfig{
 		Port:          1222,

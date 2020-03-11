@@ -51,7 +51,7 @@ func (e *EtcdLockFactory) GetEtcdSession() (*concurrency.Session, error) {
 func (e *EtcdLockFactory) Close() {
 	if e.etcd != nil {
 		e.etcd.Close()
-		logs.Trace("etcd会话关闭")
+		logs.Tracef("etcd会话关闭")
 	}
 }
 

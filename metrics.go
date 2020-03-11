@@ -21,7 +21,7 @@ var EnableMetrics = false //是否开启性能统计
 var MetricsRegistry metrics.Registry
 var MetricsCancel context.CancelFunc
 
-var log = logs.NewLogger()
+var log = logs.GetDefaultLogger()
 
 //开启性能统计
 func StartMetrics(influxdbURL string, influxdbName string,
@@ -51,7 +51,7 @@ func MetricExpHandler() http.Handler {
 }
 
 // 设置日志
-func SetLogger(lg logs.Logger) {
+func SetLogger(lg *logs.Logger) {
 	log = lg
 }
 

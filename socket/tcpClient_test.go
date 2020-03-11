@@ -10,7 +10,7 @@ import (
 )
 
 func Test_NewTcpClient(t *testing.T) {
-	log := logs.NewLogger()
+	log := logs.GetDefaultLogger()
 	ctx, cancel := context.WithCancel(context.Background())
 	client, err := NewTcpClient(ctx, &TcpClientConfig{
 		ServerAddress: "127.0.0.1:1222",

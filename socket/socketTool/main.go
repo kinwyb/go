@@ -17,7 +17,7 @@ var (
 	serverAddr       string //服务器地址
 	aliveTime        int64  //存货时间
 	interval         int64  //间隔时间
-	log              = logs.NewLogger()
+	log              = logs.GetDefaultLogger()
 )
 
 var server = &cobra.Command{
