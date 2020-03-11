@@ -56,7 +56,7 @@ func (s *TcpServer) Listen() {
 	s.conn, err = net.Listen("tcp", fmt.Sprintf("%s:%d", s.config.ServerAddress, s.config.Port))
 	if err != nil {
 		if s.config.Log != nil {
-			s.config.Log.Info("查询Socket监听失败:%s", err.Error())
+			s.config.Log.Infof("查询Socket监听失败:%s", err.Error())
 		}
 		if s.config.ErrorHandler != nil {
 			s.config.ErrorHandler(ListenErr, err)
@@ -64,7 +64,7 @@ func (s *TcpServer) Listen() {
 		return
 	}
 	if s.config.Log != nil {
-		s.config.Log.Info("服务器监听[%s:%d]开启", s.config.ServerAddress, s.config.Port)
+		s.config.Log.Infof("服务器监听开启 => %s:%d", s.config.ServerAddress, s.config.Port)
 	}
 	go s.handleConn()
 	<-s.ctx.Done()
@@ -95,7 +95,7 @@ func (s *TcpServer) handleConn() {
 				return
 			}
 			if s.config.Log != nil {
-				s.config.Log.Error("监听请求连接失败:%s", err.Error())
+				s.config.Log.Errorf("监听请求连接失败:%s", err.Error())
 			}
 			if s.config.ErrorHandler != nil {
 				s.config.ErrorHandler(ListenErr, err)
@@ -182,7 +182,7 @@ func (s *SClient) readData() {
 			return
 		} else if err != nil {
 			if s.server.config.Log != nil {
-				s.server.config.Log.Error("%s=>数据读取错误:%s", s.ID, err.Error())
+				s.server.config.Log.Errorf("%s=>数据读取错误:%s", s.ID, err.Error())
 			}
 			if s.server.config.ErrorHandler != nil {
 				s.server.config.ErrorHandler(ReadErr, err, s.ID)

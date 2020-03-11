@@ -43,26 +43,26 @@ func serverRun(cmd *cobra.Command, args []string) {
 		ServerAddress: serverListenAddr,
 		Log:           log,
 		ErrorHandler: func(errType socket.ErrorType, err error, clientID ...string) {
-			log.Error("%s => %s", errType.String(), err.Error())
+			log.Errorf("%s => %s", errType.String(), err.Error())
 		},
 		NewClientHandler: func(clientID string) socket.TcpProtocol {
-			log.Info("新客户端:%s", clientID)
+			log.Infof("新客户端:%s", clientID)
 			return nil
 		},
 		CloseHandler: func() {
-			log.Info("服务端关闭")
+			log.Infof("服务端关闭")
 		},
 		ClientCloseHandler: func(clientID string) {
-			log.Info("客户端[%s]连接关闭", clientID)
+			log.Infof("客户端[%s]连接关闭", clientID)
 		},
 	}
 	server, err := socket.NewTcpServer(ctx, config)
 	config.MessageHandler = func(clientID string, msg []byte) {
-		log.Info("[%s]收到消息:%s", clientID, string(msg))
+		log.Infof("[%s]收到消息:%s", clientID, string(msg))
 		server.Write(clientID, msg)
 	}
 	if err != nil {
-		log.Error("服务端创建失败:%s", err.Error())
+		log.Errorf("服务端创建失败:%s", err.Error())
 		return
 	}
 	if aliveTime > 0 {
@@ -86,10 +86,10 @@ func clientRun(cmd *cobra.Command, args []string) {
 		Log:               log,
 		ReConnectWaitTime: 5 * time.Second,
 		ErrorHandler: func(errorType socket.ErrorType, e error) {
-			log.Error("%s => %s", errorType, e.Error())
+			log.Errorf("%s => %s", errorType, e.Error())
 		},
 		MessageHandler: func(msg []byte) {
-			log.Info("收到消息: %s", string(msg))
+			log.Infof("收到消息: %s", string(msg))
 		},
 		CloseHandler: func() {
 			log.Info("连接关闭")
@@ -97,7 +97,7 @@ func clientRun(cmd *cobra.Command, args []string) {
 		ConnectTimeOut: 30 * time.Second,
 	})
 	if err != nil {
-		log.Error("客户端创建失败:%s", err.Error())
+		log.Errorf("客户端创建失败:%s", err.Error())
 		return
 	}
 	if aliveTime > 0 {
@@ -107,7 +107,7 @@ func clientRun(cmd *cobra.Command, args []string) {
 		}(cancel)
 	}
 	connect := client.Connect()
-	log.Info("服务器连接状态: %v", connect)
+	log.Infof("服务器连接状态: %v", connect)
 	if !connect {
 		log.Error("服务器连接失败")
 		return

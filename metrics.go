@@ -59,7 +59,7 @@ func SetLogger(lg *logs.Logger) {
 func runInfo(r metrics.Registry, d time.Duration, ctx context.Context) {
 	ps, err := process.Processes()
 	if err != nil {
-		log.Error("运行数据获取失败:%s", err.Error())
+		log.Errorf("运行数据获取失败:%s", err.Error())
 		return
 	}
 	var proc *process.Process
@@ -75,7 +75,7 @@ func runInfo(r metrics.Registry, d time.Duration, ctx context.Context) {
 		log.Error("运行进程ID获取失败")
 		return
 	}
-	log.Info("获取到运行进程ID:%d", proc.Pid)
+	log.Infof("获取到运行进程ID:%d", proc.Pid)
 	memRSS := metrics.NewGauge()
 	memVMS := metrics.NewGauge()
 	r.Register("process.Mem.RSS", memRSS)
@@ -106,7 +106,7 @@ func runInfo(r metrics.Registry, d time.Duration, ctx context.Context) {
 			//内存
 			mem, err := proc.MemoryInfo()
 			if err != nil {
-				log.Error("进程运行内存获取失败:%s", err.Error())
+				log.Errorf("进程运行内存获取失败:%s", err.Error())
 			} else {
 				memRSS.Update(int64(mem.RSS))
 				memVMS.Update(int64(mem.VMS))

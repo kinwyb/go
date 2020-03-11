@@ -19,10 +19,10 @@ func Test_NewTcpClient(t *testing.T) {
 		//Protocol:          NewProtocol(100),
 		ReConnectWaitTime: 5 * time.Second,
 		ErrorHandler: func(errorType ErrorType, e error) {
-			log.Error("%s => %s", errorType, e.Error())
+			log.Errorf("%s => %s", errorType, e.Error())
 		},
 		MessageHandler: func(msg []byte) {
-			log.Info("收到消息: %s", string(msg))
+			log.Infof("收到消息: %s", string(msg))
 		},
 		CloseHandler: func() {
 			log.Info("连接关闭")
@@ -38,9 +38,9 @@ func Test_NewTcpClient(t *testing.T) {
 		f()
 	}(cancel)
 	connect := client.Connect()
-	log.Info("服务器连接状态: %v", connect)
+	log.Infof("服务器连接状态: %v", connect)
 	if !connect {
-		t.Fatal("服务器连接失败")
+		t.Fatalf("服务器连接失败")
 	}
 	ticker := time.NewTicker(1 * time.Second)
 	i := 1

@@ -62,7 +62,7 @@ func (s *TcpServer) Listen() {
 	s.IsClose = s.nctx.Done()
 	s.conn, err = net.Listen("tcp", fmt.Sprintf(":%d", s.port))
 	if err != nil {
-		s.lg.Error("查询Socket监听失败:" + err.Error())
+		s.lg.Errorf("查询Socket监听失败:%s", err.Error())
 		s.socketErr <- socket.NewError(socket.ListenErr, err)
 		return
 	}
@@ -104,7 +104,7 @@ func (s *TcpServer) handleConn() {
 			if s.doClose { //关闭
 				return
 			}
-			s.lg.Error("监听请求连接失败:" + err.Error())
+			s.lg.Errorf("监听请求连接失败: %s", err.Error())
 			s.socketErr <- socket.NewError(socket.ListenErr, err)
 		} else {
 			sclient := &SClient{
@@ -166,7 +166,7 @@ type SClient struct {
 func (s *SClient) readData() {
 	defer func() {
 		if err := recover(); err != nil {
-			s.lg.Error("客户链接[%s]数据读取异常:%s", s.ID, err)
+			s.lg.Fatalf("客户链接[%s]数据读取异常:%s", s.ID, err)
 			s.Close()
 		}
 	}()
@@ -176,7 +176,7 @@ func (s *SClient) readData() {
 		if s.doClose {
 			return
 		} else if err != nil {
-			s.lg.Error("%s=>数据读取错误:%s", s.ID, err.Error())
+			s.lg.Errorf("%s=>数据读取错误:%s", s.ID, err.Error())
 			s.server.socketErr <- socket.NewError(socket.ReadErr, fmt.Errorf("%s=>%s", s.ID, err.Error()))
 			s.Close()
 			return

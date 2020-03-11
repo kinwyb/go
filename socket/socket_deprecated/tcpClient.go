@@ -61,7 +61,7 @@ func (c *TcpClient) connectServer() {
 	if err != nil {
 		c.connectSucc = false
 		c.isConnect <- false
-		c.lg.Error("服务器连接失败:%s", err.Error())
+		c.lg.Errorf("服务器连接失败:%s", err.Error())
 		c.socketError <- socket.NewError(socket.ConnectErr, err)
 		c.reConnectChan <- true //发起重连接
 		return
@@ -95,7 +95,7 @@ func (c *TcpClient) readData() {
 		if c.doClose {
 			return
 		} else if err != nil {
-			c.lg.Error("数据读取错误:" + err.Error())
+			c.lg.Errorf("数据读取错误:%s", err.Error())
 			c.socketError <- socket.NewError(socket.ReadErr, err)
 			c.Close()
 			c.reConnectChan <- true //发起重连接

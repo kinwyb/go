@@ -82,7 +82,7 @@ func (r *RedisUtil) SET(key, value string) bool {
 	_, err := rclient.Do("SET", r.prefix+key, value)
 	rclient.Close()
 	if err != nil && r.log != nil {
-		r.log.Error("[SET]失败:%s", err.Error())
+		r.log.Errorf("[SET]失败:%s", err.Error())
 	}
 	return err == nil
 }
@@ -96,7 +96,7 @@ func (r *RedisUtil) SETEX(key, value string, expireTime int64) bool {
 	_, err := rclient.Do("SETEX", r.prefix+key, expireTime, value)
 	rclient.Close()
 	if err != nil && r.log != nil {
-		r.log.Error("[SETEX]失败:%s", err.Error())
+		r.log.Errorf("[SETEX]失败:%s", err.Error())
 	}
 	return err == nil
 }
@@ -112,7 +112,7 @@ func (r *RedisUtil) EXPIRE(key string, expireTime int64) int {
 	rclient.Close()
 	if err != nil {
 		if r.log != nil {
-			r.log.Error("[EXPIRE]失败:%s", err.Error())
+			r.log.Errorf("[EXPIRE]失败:%s", err.Error())
 		}
 		return -1
 	}
@@ -139,7 +139,7 @@ func (r *RedisUtil) DEL(key ...interface{}) int {
 	rclient.Close()
 	if err != nil {
 		if r.log != nil {
-			r.log.Error("[DEL]失败:%s", err.Error())
+			r.log.Errorf("[DEL]失败:%s", err.Error())
 		}
 		return -1
 	}
@@ -165,7 +165,7 @@ func (r *RedisUtil) KEYS(pattern string) ([]string, error) {
 	rclient.Close()
 	if err != nil {
 		if r.log != nil {
-			r.log.Error("[KEYS]失败:%s", err.Error())
+			r.log.Errorf("[KEYS]失败:%s", err.Error())
 		}
 		return nil, err
 	}
@@ -184,7 +184,7 @@ func (r *RedisUtil) GET(key string) string {
 	rclient.Close()
 	if err != nil || ret == nil {
 		if r.log != nil {
-			r.log.Error("[GET]失败:%s", err.Error())
+			r.log.Errorf("[GET]失败:%s", err.Error())
 		}
 		return ""
 	}
@@ -202,7 +202,7 @@ func (r *RedisUtil) GETSET(key, value string) string {
 	rclient.Close()
 	if err != nil || ret == nil {
 		if r.log != nil {
-			r.log.Error("[GETSET]失败:%s", err.Error())
+			r.log.Errorf("[GETSET]失败:%s", err.Error())
 		}
 		return ""
 	}
@@ -219,7 +219,7 @@ func (r *RedisUtil) GETEXP(key string, expireTime int64) string {
 	ret, err := rclient.Do("GET", r.prefix+key)
 	if err != nil || ret == nil {
 		if r.log != nil {
-			r.log.Error("[GETEXP]:%s", err.Error())
+			r.log.Errorf("[GETEXP]:%s", err.Error())
 		}
 		rclient.Close()
 		return ""
