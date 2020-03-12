@@ -15,7 +15,7 @@ type TcpClientConfig struct {
 	AutoReConnect     bool                   //自动重连
 	ReConnectWaitTime time.Duration          //重连等待时间
 	Protocol          TcpProtocol            //连接处理协议,如果没有则收到什么数据返回什么数据,写入什么数据发送什么数据
-	Log               *logs.Logger           //日志
+	Log               logs.ILogger           //日志
 	ErrorHandler      func(ErrorType, error) //错误处理
 	ConnectHandler    func()                 //连接成功调用
 	MessageHandler    func([]byte)           //消息处理

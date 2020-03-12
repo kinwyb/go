@@ -22,7 +22,7 @@ type TcpClient struct {
 	ncancelFunc   context.CancelFunc //关闭函数
 	protocol      *Protocol          //沾包处理
 	conn          net.Conn           //socket连接
-	lg            *logs.Logger       //日志
+	lg            logs.ILogger       //日志
 	IsClose       <-chan struct{}    //关闭channel
 	isConnect     chan bool          //是否连接
 	reConnectChan chan bool          //重连标记
@@ -156,7 +156,7 @@ func (c *TcpClient) Close() {
 }
 
 //设置日志
-func (c *TcpClient) SetLogger(lg *logs.Logger) {
+func (c *TcpClient) SetLogger(lg logs.ILogger) {
 	c.lg = lg
 }
 

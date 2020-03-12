@@ -33,7 +33,7 @@ type TcpServer struct {
 	nctx        context.Context
 	ncancelFunc context.CancelFunc
 	conn        net.Listener
-	lg          *logs.Logger
+	lg          logs.ILogger
 	port        int
 	clients     map[string]*SClient
 	readData    chan *TcpMsg //读取到的数据
@@ -88,7 +88,7 @@ func (s *TcpServer) Close() {
 }
 
 //设置日志
-func (s *TcpServer) SetLogger(lg *logs.Logger) {
+func (s *TcpServer) SetLogger(lg logs.ILogger) {
 	s.lg = lg
 }
 
@@ -156,7 +156,7 @@ type SClient struct {
 	protocol   *Protocol
 	ctx        context.Context
 	cancelFunc context.CancelFunc
-	lg         *logs.Logger
+	lg         logs.ILogger
 	IsClose    <-chan struct{} //关闭channel
 	ID         string          //客户端唯一标示
 	doClose    bool            //关闭

@@ -18,7 +18,7 @@ import (
 type TcpServerConfig struct {
 	Port               int64                                                  //监听端口
 	ServerAddress      string                                                 //服务监听地址
-	Log                *logs.Logger                                           //日志
+	Log                logs.ILogger                                           //日志
 	ErrorHandler       func(errType ErrorType, err error, clientID ...string) //错误处理
 	NewClientHandler   func(clientID string) TcpProtocol                      //新客户端连接回调,返回该客户端处理协议,可以返回nil
 	MessageHandler     func(clientID string, msg []byte)                      //消息处理

@@ -10,7 +10,7 @@ type TcpProtocol interface {
 }
 
 //异常处理
-func recoverPainc(lg *logs.Logger, f ...func()) {
+func recoverPainc(lg logs.ILogger, f ...func()) {
 	if r := recover(); r != nil {
 		if lg != nil {
 			lg.Fatalf("异常:%s", r)
