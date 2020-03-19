@@ -1,10 +1,8 @@
 package exit
 
 import (
-	"context"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 )
 
@@ -13,11 +11,8 @@ type Func func(args ...interface{})
 
 //创建监听退出chan
 var exitSigle chan os.Signal
-
-var waitGroup *sync.WaitGroup
-var cancel context.CancelFunc
-var ctx context.Context
 var signalType []os.Signal
+var exitFuncs []*exitFun
 
 // 初始化基础信号
 func initSignal() []os.Signal {
@@ -39,24 +34,35 @@ func Listen(fun Func, args ...interface{}) {
 	if exitSigle == nil {
 		//创建监听退出chan
 		exitSigle = make(chan os.Signal)
-		waitGroup = &sync.WaitGroup{}
-		ctx, cancel = context.WithCancel(context.TODO())
-		go func() {
-			<-exitSigle
-			cancel() //关闭
-		}()
-		go func() {
-			<-ctx.Done()
-			waitGroup.Wait()
-			os.Exit(0)
-		}()
 		//监听指定信号 ctrl+c kill
 		signal.Notify(exitSigle, signalType...)
+		go func() {
+			<-exitSigle
+			for _, v := range exitFuncs {
+				if v.fun != nil {
+					v.fun(v.args...)
+				}
+			}
+			os.Exit(0)
+		}()
 	}
-	waitGroup.Add(1)
-	go func(fun Func, args ...interface{}) {
-		<-ctx.Done()
-		fun(args...)
-		waitGroup.Done()
-	}(fun, args...)
+	exitFuncs = append(exitFuncs, &exitFun{
+		fun:  fun,
+		args: args,
+	})
+}
+
+func Exit() {
+	if exitSigle != nil {
+		// 发送停止信号
+		exitSigle <- syscall.SIGQUIT
+		// 等待停止函数完成
+		<-exitSigle
+	}
+}
+
+// 退出函数结构
+type exitFun struct {
+	fun  Func
+	args []interface{}
 }

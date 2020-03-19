@@ -3,6 +3,7 @@ package exit
 import (
 	"fmt"
 	"testing"
+	"time"
 )
 
 func TestExit(t *testing.T) {
@@ -26,6 +27,6 @@ func TestExit(t *testing.T) {
 	Listen(exitFun3)
 	Listen(exitFun4)
 	Listen(exitFun5)
-	c := make(chan int)
-	<-c
+	time.Sleep(10 * time.Second)
+	t.Logf("开启关闭")
 }
