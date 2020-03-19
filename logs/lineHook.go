@@ -8,21 +8,19 @@ import (
 )
 
 // line number hook for log the call context,
-type lineHook struct {
-	Field string
-	// skip为遍历调用栈开始的索引位置
-	Skip   int
+type LineHook struct {
+	Field  string
 	levels []log.Level
 }
 
 // Levels implement levels
-func (hook lineHook) Levels() []log.Level {
+func (hook LineHook) Levels() []log.Level {
 	return log.AllLevels
 }
 
 // Fire implement fire
-func (hook lineHook) Fire(entry *log.Entry) error {
-	entry.Data[hook.Field] = findCaller(hook.Skip)
+func (hook LineHook) Fire(entry *log.Entry) error {
+	entry.Data[hook.Field] = findCaller(1)
 	return nil
 }
 
@@ -34,10 +32,19 @@ func findCaller(skip int) string {
 	for i := 0; i < 11; i++ {
 		file, line, pc = getCaller(skip + i)
 		// 过滤掉所有logrus包，即可得到生成代码信息
-		if !strings.HasPrefix(file, "logrus") &&
-			!strings.HasPrefix(file, "log") {
-			break
+		if strings.HasPrefix(file, "log") {
+			if strings.HasPrefix(file, "log/") ||
+				strings.HasPrefix(file, "log@") ||
+				strings.HasPrefix(file, "logs/") ||
+				strings.HasPrefix(file, "logs@") ||
+				strings.HasPrefix(file, "logrus@") ||
+				strings.HasPrefix(file, "logrus/") {
+				i--
+				skip++
+				continue
+			}
 		}
+		break
 	}
 
 	fullFnName := runtime.FuncForPC(pc)

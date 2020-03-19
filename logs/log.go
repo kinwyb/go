@@ -46,9 +46,8 @@ func (l *Logger) EnableSource() {
 	if l.enableSource {
 		return
 	}
-	l.Logger.AddHook(&lineHook{
+	l.Logger.AddHook(&LineHook{
 		Field: "source",
-		Skip:  3,
 	})
 }
 
