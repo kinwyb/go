@@ -193,6 +193,7 @@ func (m *mssql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
 	f := func(tx db.TxSQL) err1.Error {
 		return t(&mssqlTx{
 			TxSQL: tx,
+			db:    m,
 		})
 	}
 	return m.Conn.Transaction(f, new...)
@@ -200,6 +201,21 @@ func (m *mssql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
 
 type mssqlTx struct {
 	db.TxSQL
+	db *mssql
+}
+
+//Transaction 事务处理
+//@param t TransactionFunc 事务处理函数
+func (m *mssqlTx) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
+	if t != nil {
+		if len(new) > 0 && new[0] && m.db != nil {
+			//要求新事物返回新事务
+			return m.db.Transaction(t)
+		}
+		//本身就是事务了，直接调用即可
+		return t(m)
+	}
+	return nil
 }
 
 //RowsCallbackResult 查询多条数据,结果以回调函数处理
