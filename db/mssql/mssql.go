@@ -362,7 +362,11 @@ func UniqueIdentifierToString(v interface{}) string {
 	}
 	i := sqlserver.UniqueIdentifier{}
 	i.Scan(v)
-	return i.String()
+	ret := i.String()
+	if ret == "00000000-0000-0000-0000-000000000000" {
+		return ""
+	}
+	return ret
 }
 
 // 日期时间转换成字符串
