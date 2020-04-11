@@ -13,17 +13,15 @@ package db;
 //	data       [][]interface{} //查询结果内容
 //	datalength int             //结果长度
 //	rows       *sql.Rows       //查询结果对象
-//	err        err1.Error      //查询错误
-//	errFmt     FormatError     //错误格式化
+//	err        error      //查询错误
 //}
 
 // 查询返回结果
 message QueryResultMsg {
     repeated string columns = 1; //查询字段内容
     int64 datalength = 2; //结果长度
-    int64 errCode = 3; //错误编码
-    string errMsg = 4; //错误内容
-    repeated QueryResultData data = 5; //查询结果
+    string errMsg = 3; //错误内容
+    repeated QueryResultData data = 4; //查询结果
 }
 
 message QueryResultData {

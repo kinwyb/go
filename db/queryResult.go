@@ -2,10 +2,9 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 
 	"github.com/gogo/protobuf/proto"
-
-	"github.com/kinwyb/go/err1"
 )
 
 //查询结果返回接口
@@ -14,9 +13,9 @@ type QueryResult interface {
 	//如果参数func返回true，并且还有下一条结果则再次调用func返回下一条
 	ForEach(func(map[string]interface{}) bool) QueryResult
 	//出错时回调参数方法
-	Error(func(err1.Error)) QueryResult
+	Error(func(error)) QueryResult
 	//是否出错
-	HasError() err1.Error
+	HasError() error
 	//是否为空
 	IsEmpty() bool
 	//结果空是回调参数方法
@@ -36,7 +35,7 @@ type QueryResult interface {
 }
 
 //读取查询结果
-func NewQueryResult(rows *sql.Rows, fmterr FormatError) QueryResult {
+func NewQueryResult(rows *sql.Rows) QueryResult {
 	ret := &res{}
 	if rows == nil {
 		ret.columns = []string{}
@@ -45,11 +44,7 @@ func NewQueryResult(rows *sql.Rows, fmterr FormatError) QueryResult {
 		var err error
 		ret.columns, err = rows.Columns()
 		if err != nil {
-			if fmterr != nil {
-				ret.err = fmterr.FormatError(err)
-			} else {
-				ret.err = err1.NewError(1, "查询字段读取错误", err)
-			}
+			ret.err = err
 		} else {
 			ret.rows = rows
 		}
@@ -59,7 +54,7 @@ func NewQueryResult(rows *sql.Rows, fmterr FormatError) QueryResult {
 }
 
 //返回一个查询错误
-func ErrQueryResult(err err1.Error) QueryResult {
+func ErrQueryResult(err error) QueryResult {
 	return &res{
 		err: err,
 	}
@@ -70,18 +65,17 @@ type res struct {
 	data       [][]interface{} //查询结果内容
 	datalength int             //结果长度
 	rows       *sql.Rows       //查询结果对象
-	err        err1.Error      //查询错误
-	errFmt     FormatError     //错误格式化
+	err        error           //查询错误
 }
 
-func (r *res) Error(f func(err1.Error)) QueryResult {
+func (r *res) Error(f func(err error)) QueryResult {
 	if r.err != nil && f != nil {
 		f(r.err)
 	}
 	return r
 }
 
-func (r *res) HasError() err1.Error {
+func (r *res) HasError() error {
 	return r.err
 }
 
@@ -113,11 +107,7 @@ func (r *res) passRows() {
 				r.datalength = 0
 				r.rows.Close()
 				r.rows = nil
-				if r.errFmt != nil {
-					r.err = r.errFmt.FormatError(err)
-				} else {
-					r.err = err1.NewError(1, "数据读取错误", err)
-				}
+				r.err = err
 				return
 			}
 			for k, v := range row {
@@ -217,8 +207,8 @@ func QueryResultToBytes(q QueryResult) []byte {
 	}
 	err := q.HasError()
 	if err != nil {
-		msg.ErrCode = err.Code()
-		msg.ErrMsg = err.Msg()
+		msg.ErrCode = -1
+		msg.ErrMsg = err.Error()
 	}
 	for _, v := range q.Rows() {
 		ret := &QueryResultData{}
@@ -241,8 +231,8 @@ func BytesToQueryResult(data []byte) QueryResult {
 		columns:    msg.Columns,
 		datalength: int(msg.Datalength),
 	}
-	if msg.ErrCode != 0 {
-		r.err = err1.NewError(msg.ErrCode, msg.ErrMsg)
+	if msg.ErrMsg != "" {
+		r.err = errors.New(msg.ErrMsg)
 	}
 	for _, v := range msg.Data {
 		var r1 []interface{}

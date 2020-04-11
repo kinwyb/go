@@ -2,11 +2,11 @@ package mysql
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 	"strings"
 
 	"github.com/kinwyb/go/db/tags"
-	"github.com/kinwyb/go/err1"
 )
 
 //SetSQL 转换成插入语句
@@ -49,7 +49,7 @@ func SetSQL(obj interface{}) (string, []interface{}) {
 }
 
 //Update 更新数据
-func Update(table string, obj interface{}) (string, []interface{}, err1.Error) {
+func Update(table string, obj interface{}) (string, []interface{}, error) {
 	vp := reflect.ValueOf(obj)
 	if v, ok := obj.(reflect.Value); ok {
 		vp = v
@@ -63,7 +63,7 @@ func Update(table string, obj interface{}) (string, []interface{}, err1.Error) {
 	rtype := reflect.TypeOf(vp.Interface())
 	tp, primary := tags.DbTag(rtype)
 	if primary == "" {
-		return "", nil, err1.NewError(-1, "更新数据无主键")
+		return "", nil, errors.New("更新数据无主键")
 	}
 	buf := bytes.NewBufferString("UPDATE ")
 	buf.WriteString(table)

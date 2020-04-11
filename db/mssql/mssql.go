@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kinwyb/go/err1"
-
 	sqlserver "github.com/denisenkom/go-mssqldb"
 	"github.com/kinwyb/go/db"
 )
@@ -67,8 +65,7 @@ func (m *mssql) QueryRows(sql string, args ...interface{}) db.QueryResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrQueryResult(
-			err1.NewError(-1, "参数缺少,目标参数%d个,实际参数%d个").Format(i, len(args)))
+		return db.ErrQueryResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
 	}
 	return m.Conn.QueryRows(sql, args...)
 }
@@ -88,7 +85,7 @@ func (m *mssql) QueryRow(sql string, args ...interface{}) db.QueryResult {
 //ParseSQL 解析SQL
 //@param sql string SQL
 //@param args map[string]interface{} 参数映射
-func (m *mssql) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, err1.Error) {
+func (m *mssql) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, error) {
 	cp, err := regexp.Compile("@([^\\s|,|\\)]*)")
 	if err != nil {
 		return sql, nil, nil
@@ -100,7 +97,7 @@ func (m *mssql) ParseSQL(sql string, args map[string]interface{}) (string, []int
 			if v, ok := args[s[1]]; ok { //存在参数
 				result[index] = v
 			} else {
-				return sql, nil, m.FormatError(errors.New("缺少参数[" + s[0] + "]的值"))
+				return sql, nil, errors.New("缺少参数[" + s[0] + "]的值")
 			}
 		}
 		return cp.ReplaceAllString(sql, "?"), result, nil
@@ -116,7 +113,7 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	sql = strings.ReplaceAll(sql, "?", "@")
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
-		return db.ErrQueryResult(err1.NewError(-1, "sql语句解析错误:"+err.Error()))
+		return db.ErrQueryResult(fmt.Errorf("sql语句解析错误:%w", err))
 	}
 	selectColumn := ""
 	from := ""
@@ -137,7 +134,7 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 		stmt.OrderBy.Format(buf)
 		orderBy = buf.String()
 	default:
-		return db.ErrQueryResult(err1.NewError(-1, "只支持select语句"))
+		return db.ErrQueryResult(errors.New("只支持select语句"))
 	}
 	where = strings.ReplaceAll(where, "@", "?")
 	sqlBuilder := strings.Builder{}
@@ -152,7 +149,7 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 		currentpage = page.Page - 1
 	}
 	if count < 1 {
-		return db.NewQueryResult(nil, nil)
+		return db.NewQueryResult(nil)
 	}
 	sqlBuilder.Reset()
 	sqlBuilder.WriteString("SELECT TOP ")
@@ -181,16 +178,15 @@ func (m *mssql) Exec(sql string, args ...interface{}) db.ExecResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrExecResult(
-			err1.NewError(-1, "参数缺少,目标参数%d个,实际参数%d个").Format(i, len(args)))
+		return db.ErrExecResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
 	}
 	return m.Conn.Exec(sql, args...)
 }
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mssql) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
-	f := func(tx db.TxSQL) err1.Error {
+func (m *mssql) Transaction(t db.TransactionFunc, new ...bool) error {
+	f := func(tx db.TxSQL) error {
 		return t(&mssqlTx{
 			TxSQL: tx,
 			db:    m,
@@ -206,7 +202,7 @@ type mssqlTx struct {
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mssqlTx) Transaction(t db.TransactionFunc, new ...bool) err1.Error {
+func (m *mssqlTx) Transaction(t db.TransactionFunc, new ...bool) error {
 	if t != nil {
 		if len(new) > 0 && new[0] && m.db != nil {
 			//要求新事物返回新事务
@@ -232,8 +228,7 @@ func (m *mssqlTx) QueryRows(sql string, args ...interface{}) db.QueryResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrQueryResult(
-			err1.NewError(-1, "参数缺少,目标参数%d个,实际参数%d个").Format(i, len(args)))
+		return db.ErrQueryResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
 	}
 	return m.TxSQL.QueryRows(sql, args...)
 }
@@ -253,7 +248,7 @@ func (m *mssqlTx) QueryRow(sql string, args ...interface{}) db.QueryResult {
 //ParseSQL 解析SQL
 //@param sql string SQL
 //@param args map[string]interface{} 参数映射
-func (m *mssqlTx) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, err1.Error) {
+func (m *mssqlTx) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, error) {
 	cp, err := regexp.Compile("@([^\\s|,|\\)]*)")
 	if err != nil {
 		return sql, nil, nil
@@ -265,7 +260,7 @@ func (m *mssqlTx) ParseSQL(sql string, args map[string]interface{}) (string, []i
 			if v, ok := args[s[1]]; ok { //存在参数
 				result[index] = v
 			} else {
-				return sql, nil, m.FormatError(errors.New("缺少参数[" + s[0] + "]的值"))
+				return sql, nil, errors.New("缺少参数[" + s[0] + "]的值")
 			}
 		}
 		return cp.ReplaceAllString(sql, "?"), result, nil
@@ -285,7 +280,7 @@ func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 	}
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
-		return db.ErrQueryResult(err1.NewError(-1, "sql语句解析错误:"+err.Error()))
+		return db.ErrQueryResult(fmt.Errorf("sql语句解析错误:%w", err))
 	}
 	selectColumn := ""
 	from := ""
@@ -306,7 +301,7 @@ func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 		stmt.OrderBy.Format(buf)
 		orderBy = buf.String()
 	default:
-		return db.ErrQueryResult(err1.NewError(-1, "只支持select语句"))
+		return db.ErrQueryResult(errors.New("只支持select语句"))
 	}
 	sqlBuilder := strings.Builder{}
 	sqlBuilder.WriteString("SELECT count(0) num FROM ")
@@ -320,7 +315,7 @@ func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 		currentpage = page.Page - 1
 	}
 	if count < 1 {
-		return db.NewQueryResult(nil, nil)
+		return db.NewQueryResult(nil)
 	}
 	sqlBuilder.Reset()
 	sqlBuilder.WriteString("SELECT TOP ")
@@ -349,8 +344,7 @@ func (m *mssqlTx) Exec(sql string, args ...interface{}) db.ExecResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrExecResult(
-			err1.NewError(-1, "参数缺少,目标参数%d个,实际参数%d个").Format(i, len(args)))
+		return db.ErrExecResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
 	}
 	return m.TxSQL.Exec(sql, args...)
 }

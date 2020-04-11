@@ -4,18 +4,12 @@ import (
 	"database/sql"
 	"regexp"
 	"strconv"
-
-	"github.com/kinwyb/go/err1"
 )
 
 //ConnTx 事务操作
 type ConnTx struct {
 	tx *sql.Tx
 	db *Conn
-}
-
-func (m *ConnTx) FormatError(e error) err1.Error {
-	return m.db.FormatError(e)
 }
 
 //Rows 查询多条数据,结果以[]map[string]interface{}方式返回
@@ -34,14 +28,14 @@ func (m *ConnTx) FormatError(e error) err1.Error {
 func (m *ConnTx) QueryRows(sql string, args ...interface{}) QueryResult {
 	rows, err := m.tx.Query(sql, args...)
 	if err != nil {
-		return ErrQueryResult(m.FormatError(err))
+		return ErrQueryResult(err)
 	}
-	return NewQueryResult(rows, m)
+	return NewQueryResult(rows)
 }
 
-func (m *ConnTx) Prepare(query string) (*sql.Stmt, err1.Error) {
+func (m *ConnTx) Prepare(query string) (*sql.Stmt, error) {
 	stmt, err := m.tx.Prepare(query)
-	return stmt, m.db.FormatError(err)
+	return stmt, err
 }
 
 //QueryResult 查询单条语句,返回结果
@@ -62,7 +56,7 @@ func (m *ConnTx) QueryRow(sql string, args ...interface{}) QueryResult {
 func (m *ConnTx) Exec(sql string, args ...interface{}) ExecResult {
 	result, err := m.tx.Exec(sql, args...)
 	if err != nil {
-		return ErrExecResult(m.FormatError(err))
+		return ErrExecResult(err)
 	}
 	return NewExecResult(result)
 }
@@ -70,7 +64,7 @@ func (m *ConnTx) Exec(sql string, args ...interface{}) ExecResult {
 //Count SQL语句条数统计
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (m *ConnTx) Count(sql string, args ...interface{}) (int64, err1.Error) {
+func (m *ConnTx) Count(sql string, args ...interface{}) (int64, error) {
 	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
 		sql = "SELECT COUNT(1) FROM (" + sql + ") as tmp"
 	}
@@ -83,7 +77,7 @@ func (m *ConnTx) Count(sql string, args ...interface{}) (int64, err1.Error) {
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return 0, m.FormatError(err)
+		return 0, err
 	}
 	return count, nil
 }
@@ -103,7 +97,7 @@ func (m *ConnTx) QueryWithPage(sql string, page *PageObj, args ...interface{}) Q
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return ErrQueryResult(m.FormatError(err))
+		return ErrQueryResult(err)
 	}
 	page.SetTotal(count)
 	currentpage := 0
@@ -111,7 +105,7 @@ func (m *ConnTx) QueryWithPage(sql string, page *PageObj, args ...interface{}) Q
 		currentpage = page.Page - 1
 	}
 	if count < 1 {
-		return NewQueryResult(nil, nil)
+		return NewQueryResult(nil)
 	}
 	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
 	return m.QueryRows(sql, args...)
@@ -127,7 +121,7 @@ func (m *ConnTx) Table(tbname string) string {
 
 //Transaction 事务处理
 //param t TransactionFunc 事务处理函数
-func (m *ConnTx) Transaction(t TransactionFunc, new ...bool) err1.Error {
+func (m *ConnTx) Transaction(t TransactionFunc, new ...bool) error {
 	if t != nil {
 		if len(new) > 0 && new[0] && m.db != nil {
 			//要求新事物返回新事务

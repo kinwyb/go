@@ -6,8 +6,6 @@ import (
 	"regexp"
 
 	"strconv"
-
-	"github.com/kinwyb/go/err1"
 )
 
 //Conn 操作对象
@@ -16,12 +14,12 @@ type Conn struct {
 	dbname string
 }
 
-func (c *Conn) connect() err1.Error {
+func (c *Conn) connect() error {
 	if c.db == nil {
-		return c.FormatError(ErrorNotOpen)
+		return ErrorNotOpen
 	}
 	if err := c.db.Ping(); err != nil {
-		return c.FormatError(err)
+		return ErrorPing
 	}
 	return nil
 }
@@ -34,13 +32,6 @@ func (c *Conn) SetSQLDB(dbSQL *sql.DB) {
 //设置数据库名称
 func (c *Conn) SetDataBaseName(dbname string) {
 	c.dbname = dbname
-}
-
-func (c *Conn) FormatError(e error) err1.Error {
-	if e == nil {
-		return nil
-	}
-	return err1.NewError(-1, e.Error(), e)
 }
 
 //Close 关闭数据库连接
@@ -63,9 +54,9 @@ func (c *Conn) QueryRows(sql string, args ...interface{}) QueryResult {
 	}
 	rows, err := c.db.Query(sql, args...)
 	if err != nil {
-		return ErrQueryResult(c.FormatError(err))
+		return ErrQueryResult(err)
 	}
-	return NewQueryResult(rows, c)
+	return NewQueryResult(rows)
 }
 
 //Row 查询单条语句,返回结果
@@ -89,7 +80,7 @@ func (c *Conn) Exec(sql string, args ...interface{}) ExecResult {
 	}
 	result, err := c.db.Exec(sql, args...)
 	if err != nil {
-		return ErrExecResult(c.FormatError(err))
+		return ErrExecResult(err)
 	}
 	return NewExecResult(result)
 }
@@ -97,7 +88,7 @@ func (c *Conn) Exec(sql string, args ...interface{}) ExecResult {
 //Count SQL语句条数统计
 //@param sql string SQL
 //@param args... interface{} SQL参数
-func (c *Conn) Count(sql string, args ...interface{}) (int64, err1.Error) {
+func (c *Conn) Count(sql string, args ...interface{}) (int64, error) {
 	if ok, _ := regexp.MatchString("(?i)(.*?) LIMIT (.*?)\\s?(.*)?", sql); ok {
 		sql = "SELECT COUNT(1) FROM (" + sql + ") as tmp"
 	}
@@ -113,7 +104,7 @@ func (c *Conn) Count(sql string, args ...interface{}) (int64, err1.Error) {
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return 0, c.FormatError(err)
+		return 0, err
 	}
 	return count, nil
 }
@@ -121,7 +112,7 @@ func (c *Conn) Count(sql string, args ...interface{}) (int64, err1.Error) {
 //ParseSQL 解析SQL
 //@param sql string SQL
 //@param args map[string]interface{} 参数映射
-func (c *Conn) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, err1.Error) {
+func (c *Conn) ParseSQL(sql string, args map[string]interface{}) (string, []interface{}, error) {
 	cp, err := regexp.Compile("@([^\\s|,|\\)]*)")
 	if err != nil {
 		return sql, nil, nil
@@ -133,7 +124,7 @@ func (c *Conn) ParseSQL(sql string, args map[string]interface{}) (string, []inte
 			if v, ok := args[s[1]]; ok { //存在参数
 				result[index] = v
 			} else {
-				return sql, nil, c.FormatError(errors.New("缺少参数[" + s[0] + "]的值"))
+				return sql, nil, errors.New("缺少参数[" + s[0] + "]的值")
 			}
 		}
 		return cp.ReplaceAllString(sql, "?"), result, nil
@@ -143,7 +134,7 @@ func (c *Conn) ParseSQL(sql string, args map[string]interface{}) (string, []inte
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (c *Conn) Transaction(t TransactionFunc, new ...bool) err1.Error {
+func (c *Conn) Transaction(t TransactionFunc, new ...bool) error {
 	if err := c.connect(); err != nil {
 		return err
 	}
@@ -168,11 +159,11 @@ func (c *Conn) Transaction(t TransactionFunc, new ...bool) err1.Error {
 			}
 		}
 	}
-	return c.FormatError(err)
+	return err
 }
 
 //GetDb 获取数据库对象
-func (c *Conn) GetDb() (*sql.DB, err1.Error) {
+func (c *Conn) GetDb() (*sql.DB, error) {
 	if err := c.connect(); err != nil {
 		return nil, err
 	}
@@ -192,7 +183,7 @@ func (c *Conn) QueryWithPage(sql string, page *PageObj, args ...interface{}) Que
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return ErrQueryResult(c.FormatError(err))
+		return ErrQueryResult(err)
 	}
 	page.SetTotal(count)
 	currentpage := 0
@@ -200,18 +191,18 @@ func (c *Conn) QueryWithPage(sql string, page *PageObj, args ...interface{}) Que
 		currentpage = page.Page - 1
 	}
 	if count < 1 {
-		return NewQueryResult(nil, nil)
+		return NewQueryResult(nil)
 	}
 	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
 	return c.QueryRows(sql, args...)
 }
 
-func (c *Conn) Prepare(query string) (*sql.Stmt, err1.Error) {
+func (c *Conn) Prepare(query string) (*sql.Stmt, error) {
 	if err := c.connect(); err != nil {
 		return nil, err
 	}
 	stmt, e := c.db.Prepare(query)
-	return stmt, c.FormatError(e)
+	return stmt, e
 }
 
 //格式化表名称,不做处理直接返回

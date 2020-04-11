@@ -2,7 +2,6 @@ package mssql
 
 import (
 	"github.com/kinwyb/go/db"
-	"github.com/kinwyb/go/err1"
 	"testing"
 )
 
@@ -11,14 +10,14 @@ func Test_mstx(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = sql.Transaction(func(tx db.TxSQL) err1.Error {
+	err = sql.Transaction(func(tx db.TxSQL) error {
 		err := one(tx)
 		if err != nil {
-			return err1.NewError(-1, err.Error())
+			return err
 		}
 		err = three(tx)
 		if err != nil {
-			return err1.NewError(-1, err.Error())
+			return err
 		}
 		return nil
 	})
@@ -28,12 +27,8 @@ func Test_mstx(t *testing.T) {
 }
 
 func one(tx db.Query) error {
-	return tx.Transaction(func(tx db.TxSQL) err1.Error {
-		err := two(tx)
-		if err != nil {
-			return err1.NewError(-1, err.Error())
-		}
-		return nil
+	return tx.Transaction(func(tx db.TxSQL) error {
+		return two(tx)
 	})
 }
 

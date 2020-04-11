@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kinwyb/go/err1"
-
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/kinwyb/go/db"
 )
@@ -45,19 +43,20 @@ func Connect(host, username, password, db string, other ...string) (db.SQL, erro
 	return result, nil
 }
 
-func (c *mysql) FormatError(e error) err1.Error {
+// 解析错误
+func formatError(e error) (int64, error) {
 	if e == nil {
-		return nil
+		return 0, nil
 	}
 	code := int64(1)
 	msg := e.Error()
-	if rep.MatchString(e.Error()) {
-		d := rep.FindAllStringSubmatch(e.Error(), -1)
+	if rep.MatchString(msg) {
+		d := rep.FindAllStringSubmatch(msg, -1)
 		msg = d[0][2]
 		cod, err := strconv.ParseInt(d[0][1], 10, 64)
 		if err == nil {
 			code = cod
 		}
 	}
-	return err1.NewError(code, msg, e)
+	return code, e
 }

@@ -1,13 +1,15 @@
 package mysql
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/kinwyb/go/db"
-	"github.com/kinwyb/go/err1"
 )
 
-var SQLEmptyChange = err1.NewError(101, "数据无变化")
+var SQLEmptyChange = errors.New("数据无变化")
+var DuplicateField = errors.New("字段重复")
 
 const (
 	DuplicateErrorCode = 1062 //字段重复
@@ -26,20 +28,21 @@ func GetDuplicateField(errmsg string) string {
 }
 
 //执行结果是否有错误
-func ExecResultHasError(execresult db.ExecResult, reportZeroChange bool, param ...map[string]string) err1.Error {
+func ExecResultHasError(execresult db.ExecResult, reportZeroChange bool, param ...map[string]string) error {
 	retError := execresult.HasError(reportZeroChange)
 	if retError != nil {
-		if retError.Code() == DuplicateErrorCode { //字段重复
-			field := GetDuplicateField(retError.Msg())
+		errCode, _ := formatError(retError)
+		if errCode == DuplicateErrorCode { //字段重复
+			field := GetDuplicateField(retError.Error())
 			if len(param) < 1 {
 				param = []map[string]string{}
 			}
 			if v, ok := param[0][field]; ok {
-				return err1.NewError(retError.Code(), "["+v+"]重复")
+				return fmt.Errorf("[%s]%w", v, DuplicateField)
 			} else if field == PRIMARY {
-				return err1.NewError(retError.Code(), "[主键]重复")
+				return fmt.Errorf("[主键]%w", DuplicateField)
 			}
-			return err1.NewError(retError.Code(), "唯一数据重复")
+			return fmt.Errorf("唯一%w", DuplicateField)
 		}
 		return retError
 	}

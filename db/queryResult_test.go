@@ -2,10 +2,9 @@ package db
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"testing"
-
-	"github.com/kinwyb/go/err1"
 )
 
 func TestQueryResultToByte(t *testing.T) {
@@ -14,7 +13,7 @@ func TestQueryResultToByte(t *testing.T) {
 			"[]byte", "bool", "float64", "float32",
 			"int64", "int32"},
 		datalength: 2,
-		err:        err1.NewError(901, "错误内容"),
+		err:        errors.New("错误内容"),
 		data: [][]interface{}{
 			{
 				"字符串1",
