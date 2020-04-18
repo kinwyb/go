@@ -63,6 +63,17 @@ func (l *Logger) HookToFile(logPath string, maxDay uint, format logrus.Formatter
 	l.Logger.AddHook(newFileHook(logPath, maxDay, l.Logger, format))
 }
 
+func (l *Logger) RemoveHook(h logrus.Hook) {
+	newHooks := logrus.LevelHooks{}
+	// 因为PanicLevel最低级的,这个等级是包含所有hook的,遍历这个等级即可
+	for _, hooks := range l.Hooks[logrus.PanicLevel] {
+		if hooks != h {
+			newHooks.Add(hooks)
+		}
+	}
+	l.ReplaceHooks(newHooks)
+}
+
 // 输入到elasticsearch https://github.com/sohlich/elogrus
 // 输入到logstash https://github.com/bshuster-repo/logrus-logstash-hook
 
