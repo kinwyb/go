@@ -3,6 +3,7 @@ package conv
 import (
 	"github.com/spf13/cast"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -203,6 +204,10 @@ func checkByteArray(i interface{}, toNum bool) interface{} {
 				!strings.HasPrefix(v, "0b") &&
 				!strings.HasPrefix(v, "0o") {
 				i = strings.TrimLeft(v, "0")
+			}
+			v1, err := strconv.ParseFloat(i.(string), 64)
+			if err == nil {
+				return v1
 			}
 		}
 	}
