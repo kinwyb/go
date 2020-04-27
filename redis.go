@@ -81,8 +81,8 @@ func (r *RedisUtil) SET(key, value string) bool {
 	rclient := r.pool.Get()
 	_, err := rclient.Do("SET", r.prefix+key, value)
 	rclient.Close()
-	if err != nil && r.log != nil {
-		r.log.Errorf("[SET]失败:%s", err.Error())
+	if err != nil {
+		r.logError("[SET]失败:%s", err)
 	}
 	return err == nil
 }
@@ -95,8 +95,8 @@ func (r *RedisUtil) SETEX(key, value string, expireTime int64) bool {
 	rclient := r.pool.Get()
 	_, err := rclient.Do("SETEX", r.prefix+key, expireTime, value)
 	rclient.Close()
-	if err != nil && r.log != nil {
-		r.log.Errorf("[SETEX]失败:%s", err.Error())
+	if err != nil {
+		r.logError("[SETEX]失败:%s", err)
 	}
 	return err == nil
 }
@@ -111,9 +111,7 @@ func (r *RedisUtil) EXPIRE(key string, expireTime int64) int {
 	ret, err := rclient.Do("EXPIRE", r.prefix+key, expireTime)
 	rclient.Close()
 	if err != nil {
-		if r.log != nil {
-			r.log.Errorf("[EXPIRE]失败:%s", err.Error())
-		}
+		r.logError("[EXPIRE]失败:%s", err)
 		return -1
 	}
 	return db.IntDefault(ret, -1)
@@ -138,12 +136,32 @@ func (r *RedisUtil) DEL(key ...interface{}) int {
 	ret, err := rclient.Do("DEL", keys...)
 	rclient.Close()
 	if err != nil {
-		if r.log != nil {
-			r.log.Errorf("[DEL]失败:%s", err.Error())
-		}
+		r.logError("[DEL]失败:%s", err)
 		return -1
 	}
 	return db.IntDefault(ret, -1)
+}
+
+func (r *RedisUtil) DelKeys(pattern string) (int, error) {
+	if r.debug {
+		return 0, nil
+	}
+	key, err := r.KEYS(pattern)
+	if err != nil {
+		return 0, err
+	}
+	keys := make([]interface{}, len(key))
+	for i, v := range key {
+		keys[i] = r.prefix + v
+	}
+	rclient := r.pool.Get()
+	ret, err := rclient.Do("DEL", keys...)
+	rclient.Close()
+	if err != nil {
+		r.logError("[DEL]失败:%s", err)
+		return 0, err
+	}
+	return db.IntDefault(ret, -1), nil
 }
 
 //KEYS 获取key集合
@@ -164,9 +182,7 @@ func (r *RedisUtil) KEYS(pattern string) ([]string, error) {
 	ret, err := rclient.Do("KEYS", r.prefix+pattern)
 	rclient.Close()
 	if err != nil {
-		if r.log != nil {
-			r.log.Errorf("[KEYS]失败:%s", err.Error())
-		}
+		r.logError("[KEYS]失败:%s", err)
 		return nil, err
 	}
 	return db.Strings(ret)
@@ -183,12 +199,17 @@ func (r *RedisUtil) GET(key string) string {
 	ret, err := rclient.Do("GET", key)
 	rclient.Close()
 	if err != nil || ret == nil {
-		if r.log != nil {
-			r.log.Errorf("[GET]失败:%s", err.Error())
-		}
+		r.logError("[GET]失败:%s", err)
 		return ""
 	}
 	return db.StringDefault(ret, "")
+}
+
+func (r *RedisUtil) logError(format string, err error) {
+	if r.log == nil || err == nil {
+		return
+	}
+	r.log.Errorf(format, err.Error())
 }
 
 //GETSET 获取旧值并设置新值
@@ -201,9 +222,7 @@ func (r *RedisUtil) GETSET(key, value string) string {
 	ret, err := rclient.Do("GETSET", r.prefix+key, value)
 	rclient.Close()
 	if err != nil || ret == nil {
-		if r.log != nil {
-			r.log.Errorf("[GETSET]失败:%s", err.Error())
-		}
+		r.logError("[GETSET]失败:%s", err)
 		return ""
 	}
 	return db.StringDefault(ret, "")
@@ -218,9 +237,7 @@ func (r *RedisUtil) GETEXP(key string, expireTime int64) string {
 	rclient := r.pool.Get()
 	ret, err := rclient.Do("GET", r.prefix+key)
 	if err != nil || ret == nil {
-		if r.log != nil {
-			r.log.Errorf("[GETEXP]:%s", err.Error())
-		}
+		r.logError("[GETEXP]:%s", err)
 		rclient.Close()
 		return ""
 	}
