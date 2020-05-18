@@ -34,11 +34,10 @@ func ExecResultHasError(execresult db.ExecResult, reportZeroChange bool, param .
 		errCode, _ := formatError(retError)
 		if errCode == DuplicateErrorCode { //字段重复
 			field := GetDuplicateField(retError.Error())
-			if len(param) < 1 {
-				param = []map[string]string{}
-			}
-			if v, ok := param[0][field]; ok {
-				return fmt.Errorf("[%s]%w", v, DuplicateField)
+			if len(param) > 0 {
+				if v, ok := param[0][field]; ok {
+					return fmt.Errorf("[%s]%w", v, DuplicateField)
+				}
 			} else if field == PRIMARY {
 				return fmt.Errorf("[主键]%w", DuplicateField)
 			}
