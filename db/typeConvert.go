@@ -7,6 +7,7 @@ import (
 	"github.com/kinwyb/go/conv"
 	"github.com/micro/protobuf/ptypes"
 	"reflect"
+	"strings"
 )
 
 // Int is a helper that converts a command reply to an integer. If err is not
@@ -120,7 +121,7 @@ func StringDefault(reply interface{}, def ...string) string {
 	if err != nil && def != nil && len(def) > 0 {
 		return def[0]
 	}
-	return result
+	return strings.TrimSpace(result)
 }
 
 // Bytes is a helper that converts a command reply to a slice of bytes. If err
