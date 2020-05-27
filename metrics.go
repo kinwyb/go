@@ -36,7 +36,7 @@ func StartMetrics(influxdbURL string, influxdbName string,
 	go metrics.CaptureDebugGCStats(MetricsRegistry, time.Second*5)
 	go metrics.CaptureRuntimeMemStats(MetricsRegistry, time.Second*5)
 	go influxdb.InfluxDB(MetricsRegistry, time.Second, influxdbURL,
-		influxdbName, influxdbUser, influxdbPwd)
+		influxdbName, "go-metrics", influxdbUser, influxdbPwd, true)
 	ctx := context.Background()
 	ctx, MetricsCancel = context.WithCancel(ctx)
 	go runInfo(MetricsRegistry, time.Second*5, ctx) //运行时执行的数据
