@@ -180,3 +180,93 @@ func DateStartTimeString(t time.Time) string {
 func DateEndTimeString(t time.Time) string {
 	return t.Format(DateFormat) + " 23:59:59"
 }
+
+// int64数组去除重复
+func RemoveInt64ArrayDuplicate(arr []int64) (newArr []int64) {
+	newArr = make([]int64, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return
+}
+
+// int32数组去除重复
+func RemoveInt32ArrayDuplicate(arr []int32) (newArr []int32) {
+	newArr = make([]int32, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return
+}
+
+// int数组去除重复
+func RemoveIntArrayDuplicate(arr []int) (newArr []int) {
+	newArr = make([]int, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return
+}
+
+// float64数组去除重复
+func RemoveFloat64ArrayDuplicate(arr []float64) (newArr []float64) {
+	newArr = make([]float64, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return
+}
+
+// float32数组去除重复
+func RemoveFloat32ArrayDuplicate(arr []float32) (newArr []float32) {
+	newArr = make([]float32, 0)
+	for i := 0; i < len(arr); i++ {
+		repeat := false
+		for j := i + 1; j < len(arr); j++ {
+			if arr[i] == arr[j] {
+				repeat = true
+				break
+			}
+		}
+		if !repeat {
+			newArr = append(newArr, arr[i])
+		}
+	}
+	return
+}
