@@ -203,9 +203,10 @@ func checkByteArray(i interface{}, toNum bool) interface{} {
 			if !strings.HasPrefix(v, "0x") &&
 				!strings.HasPrefix(v, "0b") &&
 				!strings.HasPrefix(v, "0o") {
-				i = strings.TrimLeft(v, "0")
+				v = strings.TrimLeft(v, "0")
 			}
-			v1, err := strconv.ParseFloat(i.(string), 64)
+			v = strings.TrimSpace(v)
+			v1, err := strconv.ParseFloat(v, 64)
 			if err == nil {
 				return v1
 			}
