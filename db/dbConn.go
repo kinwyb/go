@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"regexp"
@@ -134,11 +135,15 @@ func (c *Conn) ParseSQL(sql string, args map[string]interface{}) (string, []inte
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (c *Conn) Transaction(t TransactionFunc, new ...bool) error {
+func (c *Conn) Transaction(t TransactionFunc, option ...*TxOption) error {
 	if err := c.connect(); err != nil {
 		return err
 	}
-	tx, err := c.db.Begin()
+	var txOption *sql.TxOptions
+	if len(option) > 0 && option[0] != nil {
+		txOption = option[0].Option
+	}
+	tx, err := c.db.BeginTx(context.Background(), txOption)
 	if err == nil {
 		defer func() {
 			if err := recover(); err != nil {

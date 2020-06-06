@@ -9,6 +9,12 @@ import (
 var ErrorNotOpen = errors.New("数据库连接失败")
 var ErrorPing = errors.New("数据库网络异常")
 
+// 事务参数
+type TxOption struct {
+	New    bool           //新事务
+	Option *sql.TxOptions //事务参数
+}
+
 //TransactionFunc 事务回调函数
 type TransactionFunc func(tx TxSQL) error
 
@@ -88,5 +94,5 @@ type Query interface {
 	//Transaction 事务处理
 	//param t TransactionFunc 事务处理函数
 	//param new bool 是否创建新事物,默认false,如果设置true不管事务是否存在都会创建新事物
-	Transaction(t TransactionFunc, new ...bool) error
+	Transaction(t TransactionFunc, option ...*TxOption) error
 }

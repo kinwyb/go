@@ -185,14 +185,14 @@ func (m *mssql) Exec(sql string, args ...interface{}) db.ExecResult {
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mssql) Transaction(t db.TransactionFunc, new ...bool) error {
+func (m *mssql) Transaction(t db.TransactionFunc, option ...*db.TxOption) error {
 	f := func(tx db.TxSQL) error {
 		return t(&mssqlTx{
 			TxSQL: tx,
 			db:    m,
 		})
 	}
-	return m.Conn.Transaction(f, new...)
+	return m.Conn.Transaction(f, option...)
 }
 
 type mssqlTx struct {
@@ -202,11 +202,14 @@ type mssqlTx struct {
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mssqlTx) Transaction(t db.TransactionFunc, new ...bool) error {
+func (m *mssqlTx) Transaction(t db.TransactionFunc, option ...*db.TxOption) error {
 	if t != nil {
-		if len(new) > 0 && new[0] && m.db != nil {
-			//要求新事物返回新事务
-			return m.db.Transaction(t)
+		if len(option) > 0 && option[0] != nil {
+			if option[0].New {
+				option[0].New = false
+				//要求新事物返回新事务
+				return m.db.Transaction(t, option...)
+			}
 		}
 		//本身就是事务了，直接调用即可
 		return t(m)

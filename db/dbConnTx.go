@@ -121,11 +121,13 @@ func (m *ConnTx) Table(tbname string) string {
 
 //Transaction 事务处理
 //param t TransactionFunc 事务处理函数
-func (m *ConnTx) Transaction(t TransactionFunc, new ...bool) error {
+func (m *ConnTx) Transaction(t TransactionFunc, option ...*TxOption) error {
 	if t != nil {
-		if len(new) > 0 && new[0] && m.db != nil {
-			//要求新事物返回新事务
-			return m.db.Transaction(t)
+		if len(option) > 0 && option[0] != nil {
+			if option[0].New {
+				option[0].New = false
+				return m.db.Transaction(t, option[0])
+			}
 		}
 		//本身就是事务了，直接调用即可
 		return t(m)
