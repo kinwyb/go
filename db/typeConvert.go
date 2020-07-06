@@ -8,6 +8,7 @@ import (
 	"github.com/micro/protobuf/ptypes"
 	"reflect"
 	"strings"
+	"time"
 )
 
 // Int is a helper that converts a command reply to an integer. If err is not
@@ -111,13 +112,16 @@ func Float64Default(reply interface{}, def ...float64) float64 {
 //  nil             "",  ErrNil
 //  other           "",  error
 func String(reply interface{}) (string, error) {
+	if v, ok := reply.(time.Time); ok {
+		return v.Format("2006-01-02 15:04:05"), nil
+	}
 	return conv.ToStringE(reply)
 }
 
 // StringDefault is a helper that converts a command reply to a string. If err is not
 // equal to nil, then String returns default value
 func StringDefault(reply interface{}, def ...string) string {
-	result, err := conv.ToStringE(reply)
+	result, err := String(reply)
 	if err != nil && def != nil && len(def) > 0 {
 		return def[0]
 	}
