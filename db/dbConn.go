@@ -225,3 +225,8 @@ func (c *Conn) DataBaseName() string {
 	}
 	return c.dbname
 }
+
+// 设置最大连接数
+func (c *Conn) SetMaxOpenConns(n int) {
+	c.db.SetMaxOpenConns(n)
+}

@@ -91,6 +91,8 @@ type Query interface {
 	Table(tbname string) string
 	//数据库名称
 	DataBaseName() string
+	// 设置最大连接数
+	SetMaxOpenConns(n int)
 	//Transaction 事务处理
 	//param t TransactionFunc 事务处理函数
 	//param new bool 是否创建新事物,默认false,如果设置true不管事务是否存在都会创建新事物

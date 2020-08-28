@@ -142,3 +142,8 @@ func (m *ConnTx) DataBaseName() string {
 	}
 	return ""
 }
+
+// 设置最大连接数
+func (m *ConnTx) SetMaxOpenConns(n int) {
+	// 无效设置
+}
