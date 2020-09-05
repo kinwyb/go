@@ -36,7 +36,7 @@ func Connect(host, username, password, db string, other ...string) (db.SQL, erro
 	if err != nil {
 		return nil, err
 	}
-	sqlDB.SetConnMaxIdleTime(1 * time.Hour) //一个小时后重置链接
+	sqlDB.SetConnMaxIdleTime(1 * time.Minute) //一个小时后重置链接
 	result.SetSQLDB(sqlDB)
 	result.SetDataBaseName(db) //记录数据库名称,表名格式化会用到
 	result.linkString = linkstring

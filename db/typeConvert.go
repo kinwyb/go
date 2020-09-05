@@ -20,12 +20,14 @@ import (
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
 //  other         0, error
+// Deprecated: use conv package function
 func Int(reply interface{}) (int, error) {
 	return conv.ToIntE(reply)
 }
 
 // IntDefault is a helper that converts interface to an integer. If err is not
 // equal to nil, then return default value
+// Deprecated: use conv package function
 func IntDefault(reply interface{}, def ...int) int {
 	result, err := conv.ToIntE(reply)
 	if err != nil && def != nil && len(def) > 0 {
@@ -43,12 +45,14 @@ func IntDefault(reply interface{}, def ...int) int {
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
 //  other         0, error
+// Deprecated: use conv package function
 func Int64(reply interface{}) (int64, error) {
 	return conv.ToInt64E(reply)
 }
 
 // Int64Default is a helper that converts 64 bit integer. If err is
 // not equal to nil, then return default value
+// Deprecated: use conv package function
 func Int64Default(reply interface{}, def ...int64) int64 {
 	result, err := conv.ToInt64E(reply)
 	if err != nil && def != nil && len(def) > 0 {
@@ -66,12 +70,14 @@ func Int64Default(reply interface{}, def ...int64) int64 {
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
 //  other         0, error
+// Deprecated: use conv package function
 func Uint64(reply interface{}) (uint64, error) {
 	return conv.ToUint64E(reply)
 }
 
 // Uint64Default is a helper that converts to 64 bit integer. If err is
 // not equal to nil, then return default value
+// Deprecated: use conv package function
 func Uint64Default(reply interface{}, def ...uint64) uint64 {
 	result, err := conv.ToUint64E(reply)
 	if err != nil && def != nil && len(def) > 0 {
@@ -88,12 +94,14 @@ func Uint64Default(reply interface{}, def ...uint64) uint64 {
 //  bulk string   parsed reply, nil
 //  nil           0, ErrNil
 //  other         0, error
+// Deprecated: use conv package function
 func Float64(reply interface{}) (float64, error) {
 	return conv.ToFloat64E(reply)
 }
 
 // Float64Default is a helper that converts a command reply to 64 bit float. If err is
 // not equal to nil, then return default value
+// Deprecated: use conv package function
 func Float64Default(reply interface{}, def ...float64) float64 {
 	result, err := conv.ToFloat64E(reply)
 	if err != nil && def != nil && len(def) > 0 {
@@ -111,6 +119,7 @@ func Float64Default(reply interface{}, def ...float64) float64 {
 //  simple string   reply, nil
 //  nil             "",  ErrNil
 //  other           "",  error
+// Deprecated: use conv package function
 func String(reply interface{}) (string, error) {
 	if v, ok := reply.(time.Time); ok {
 		return v.Format("2006-01-02 15:04:05"), nil
@@ -120,6 +129,7 @@ func String(reply interface{}) (string, error) {
 
 // StringDefault is a helper that converts a command reply to a string. If err is not
 // equal to nil, then String returns default value
+// Deprecated: use conv package function
 func StringDefault(reply interface{}, def ...string) string {
 	result, err := String(reply)
 	if err != nil && def != nil && len(def) > 0 {
@@ -137,12 +147,14 @@ func StringDefault(reply interface{}, def ...string) string {
 //  simple string   []byte(reply), nil
 //  nil             nil, ErrNil
 //  other           nil, error
+// Deprecated: use conv package function
 func Bytes(reply interface{}) ([]byte, error) {
 	return conv.ToBytesE(reply)
 }
 
 // BytesDefault is a helper that converts a command reply to a slice of bytes. If err
 // is not equal to nil, then Bytes returns default value
+// Deprecated: use conv package function
 func BytesDefault(reply interface{}, def ...[]byte) []byte {
 	result, err := conv.ToBytesE(reply)
 	if err != nil && def != nil && len(def) > 0 {
@@ -160,12 +172,14 @@ func BytesDefault(reply interface{}, def ...[]byte) []byte {
 //  bulk string     strconv.ParseBool(reply)
 //  nil             false, ErrNil
 //  other           false, error
+// Deprecated: use conv package function
 func Bool(reply interface{}) (bool, error) {
 	return conv.ToBoolE(reply)
 }
 
 // BoolDefault is a helper that converts a command reply to a boolean. If err is not
 // equal to nil, then Bool returns default value
+// Deprecated: use conv package function
 func BoolDefault(reply interface{}, def ...bool) bool {
 	result, err := conv.ToBoolE(reply)
 	if err != nil && def != nil && len(def) > 0 {
@@ -178,6 +192,7 @@ func BoolDefault(reply interface{}, def ...bool) bool {
 // err is not equal to nil, then Strings returns nil, err. Nil array items are
 // converted to "" in the output slice. Strings returns an error if an array
 // item is not a bulk string or nil.
+// Deprecated: use conv package function
 func Strings(reply interface{}) ([]string, error) {
 	return conv.ToStringSliceE(reply)
 }
@@ -185,6 +200,7 @@ func Strings(reply interface{}) ([]string, error) {
 // StringMap is a helper that converts an array of strings (alternating key, value)
 // into a map[string]string. The HGETALL and CONFIG GET commands return replies in this format.
 // Requires an even number of values in result.
+// Deprecated: use conv package function
 func StringMap(result interface{}) (map[string]string, error) {
 	return conv.ToStringMapStringE(result)
 }
@@ -192,6 +208,7 @@ func StringMap(result interface{}) (map[string]string, error) {
 // IntMap is a helper that converts an array of strings (alternating key, value)
 // into a map[string]int. The HGETALL commands return replies in this format.
 // Requires an even number of values in result.
+// Deprecated: use conv package function
 func IntMap(result interface{}) (map[string]int, error) {
 	return conv.ToStringMapIntE(result)
 }
@@ -199,11 +216,13 @@ func IntMap(result interface{}) (map[string]int, error) {
 // Int64Map is a helper that converts an array of strings (alternating key, value)
 // into a map[string]int64. The HGETALL commands return replies in this format.
 // Requires an even number of values in result.
+// Deprecated: use conv package function
 func Int64Map(result interface{}) (map[string]int64, error) {
 	return conv.ToStringMapInt64E(result)
 }
 
 // ToValue converts an interface{} to a ptypes.Value
+// Deprecated: use conv package function
 func InterfaceToPytesStruceValue(v interface{}) *st.Value {
 	switch v := v.(type) {
 	case nil:
@@ -396,6 +415,7 @@ func toValue(v reflect.Value) *st.Value {
 
 // DecodeToMap converts a pb.Struct to a map from strings to Go types.
 // DecodeToMap panics if s is invalid.
+// Deprecated: use conv package function
 func DecodePytesStruceValueToMap(s *st.Struct) map[string]interface{} {
 	if s == nil {
 		return nil
@@ -430,15 +450,18 @@ func decodeValue(v *st.Value) interface{} {
 	}
 }
 
+// Deprecated: use conv package function
 func InterfaceToProtoAny(v interface{}) (*any.Any, error) {
 	return ptypes.MarshalAny(InterfaceToPytesStruceValue(v))
 }
 
+// Deprecated: use conv package function
 func InterfaceToProtoAnyDefault(v interface{}) *any.Any {
 	ret, _ := ptypes.MarshalAny(InterfaceToPytesStruceValue(v))
 	return ret
 }
 
+// Deprecated: use conv package function
 func ProtoAnyToInterface(v *any.Any) interface{} {
 	s := &st.Value{}
 	ptypes.UnmarshalAny(v, s)
