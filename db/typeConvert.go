@@ -222,7 +222,6 @@ func Int64Map(result interface{}) (map[string]int64, error) {
 }
 
 // ToValue converts an interface{} to a ptypes.Value
-// Deprecated: use conv package function
 func InterfaceToPytesStruceValue(v interface{}) *st.Value {
 	switch v := v.(type) {
 	case nil:
@@ -415,7 +414,6 @@ func toValue(v reflect.Value) *st.Value {
 
 // DecodeToMap converts a pb.Struct to a map from strings to Go types.
 // DecodeToMap panics if s is invalid.
-// Deprecated: use conv package function
 func DecodePytesStruceValueToMap(s *st.Struct) map[string]interface{} {
 	if s == nil {
 		return nil
@@ -450,18 +448,15 @@ func decodeValue(v *st.Value) interface{} {
 	}
 }
 
-// Deprecated: use conv package function
 func InterfaceToProtoAny(v interface{}) (*any.Any, error) {
 	return ptypes.MarshalAny(InterfaceToPytesStruceValue(v))
 }
 
-// Deprecated: use conv package function
 func InterfaceToProtoAnyDefault(v interface{}) *any.Any {
 	ret, _ := ptypes.MarshalAny(InterfaceToPytesStruceValue(v))
 	return ret
 }
 
-// Deprecated: use conv package function
 func ProtoAnyToInterface(v *any.Any) interface{} {
 	s := &st.Value{}
 	ptypes.UnmarshalAny(v, s)

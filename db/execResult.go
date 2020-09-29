@@ -3,14 +3,17 @@ package db
 import (
 	"database/sql"
 	"errors"
+	"github.com/sirupsen/logrus"
 
 	"github.com/gogo/protobuf/proto"
 )
 
 type ExecResult interface {
 	sql.Result
-	//出错时回调参数方法
+	// 出错时回调参数方法
 	Error(func(error)) ExecResult
+	// 错误保存到日志
+	ErrorToLog(log *logrus.Entry, msg string) ExecResult
 	//是否出错
 	HasError(reportZeroChange ...bool) error
 }
@@ -24,20 +27,33 @@ func NewExecResult(rs sql.Result) ExecResult {
 }
 
 //查询错误结果
-func ErrExecResult(err error) ExecResult {
+func ErrExecResult(err error, sql string, args []interface{}) ExecResult {
 	return &rus{
-		err: err,
+		sql:  sql,
+		args: args,
+		err:  err,
 	}
 }
 
 type rus struct {
 	sql.Result
-	err error //查询错误
+	sql  string
+	args []interface{}
+	err  error //查询错误
 }
 
 func (r *rus) Error(f func(err error)) ExecResult {
 	if r.err != nil && f != nil {
 		f(r.err)
+	}
+	return r
+}
+
+func (r *rus) ErrorToLog(log *logrus.Entry, msg string) ExecResult {
+	if r.err != nil && log != nil {
+		log.WithField("sql", r.sql).
+			WithField("req", r.args).
+			WithError(r.err).Errorf("SQL错误:%s", msg)
 	}
 	return r
 }
@@ -72,6 +88,13 @@ func (r *rusMsg) RowsAffected() (int64, error) {
 func (r *rusMsg) Error(f func(err error)) ExecResult {
 	if r.err != nil && f != nil {
 		f(r.err)
+	}
+	return r
+}
+
+func (r *rusMsg) ErrorToLog(log *logrus.Entry, msg string) ExecResult {
+	if r.err != nil && log != nil {
+		log.WithError(r.err).Errorf("SQL错误:%s", msg)
 	}
 	return r
 }

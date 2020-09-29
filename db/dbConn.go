@@ -51,13 +51,13 @@ func (c *Conn) Close() {
 //@param args... interface{} SQL参数
 func (c *Conn) QueryRows(sql string, args ...interface{}) QueryResult {
 	if err := c.connect(); err != nil {
-		return ErrQueryResult(err)
+		return ErrQueryResult(err, sql, args)
 	}
 	rows, err := c.db.Query(sql, args...)
 	if err != nil {
-		return ErrQueryResult(err)
+		return ErrQueryResult(err, sql, args)
 	}
-	return NewQueryResult(rows)
+	return NewQueryResult(rows, sql, args)
 }
 
 //Row 查询单条语句,返回结果
@@ -77,11 +77,11 @@ func (c *Conn) QueryRow(sql string, args ...interface{}) QueryResult {
 //@param args... interface{} SQL参数
 func (c *Conn) Exec(sql string, args ...interface{}) ExecResult {
 	if err := c.connect(); err != nil {
-		return ErrExecResult(err)
+		return ErrExecResult(err, sql, args)
 	}
 	result, err := c.db.Exec(sql, args...)
 	if err != nil {
-		return ErrExecResult(err)
+		return ErrExecResult(err, sql, args)
 	}
 	return NewExecResult(result)
 }
@@ -182,13 +182,13 @@ func (c *Conn) QueryWithPage(sql string, page *PageObj, args ...interface{}) Que
 	}
 	countsql := "select count(0) from (" + sql + ") as total"
 	if err := c.connect(); err != nil {
-		return ErrQueryResult(err)
+		return ErrQueryResult(err, sql, args)
 	}
 	result := c.db.QueryRow(countsql, args...)
 	var count int64
 	err := result.Scan(&count)
 	if err != nil {
-		return ErrQueryResult(err)
+		return ErrQueryResult(err, sql, args)
 	}
 	page.SetTotal(count)
 	currentpage := 0
@@ -196,7 +196,7 @@ func (c *Conn) QueryWithPage(sql string, page *PageObj, args ...interface{}) Que
 		currentpage = page.Page - 1
 	}
 	if count < 1 {
-		return NewQueryResult(nil)
+		return NewQueryResult(nil, sql, args)
 	}
 	sql = sql + " LIMIT " + strconv.FormatInt(int64(currentpage*page.Rows), 10) + "," + strconv.FormatInt(int64(page.Rows), 10)
 	return c.QueryRows(sql, args...)

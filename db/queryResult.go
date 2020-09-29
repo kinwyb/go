@@ -3,8 +3,8 @@ package db
 import (
 	"database/sql"
 	"errors"
-
 	"github.com/gogo/protobuf/proto"
+	"github.com/sirupsen/logrus"
 )
 
 //查询结果返回接口
@@ -14,6 +14,8 @@ type QueryResult interface {
 	ForEach(func(map[string]interface{}) bool) QueryResult
 	//出错时回调参数方法
 	Error(func(error)) QueryResult
+	// 错误保存到日志
+	ErrorToLog(log *logrus.Entry, msg string) QueryResult
 	//是否出错
 	HasError() error
 	//是否为空
@@ -35,8 +37,11 @@ type QueryResult interface {
 }
 
 //读取查询结果
-func NewQueryResult(rows *sql.Rows) QueryResult {
-	ret := &res{}
+func NewQueryResult(rows *sql.Rows, sql string, args []interface{}) QueryResult {
+	ret := &res{
+		sql:  sql,
+		args: args,
+	}
 	if rows == nil {
 		ret.columns = []string{}
 		ret.data = nil
@@ -54,9 +59,11 @@ func NewQueryResult(rows *sql.Rows) QueryResult {
 }
 
 //返回一个查询错误
-func ErrQueryResult(err error) QueryResult {
+func ErrQueryResult(err error, sql string, args []interface{}) QueryResult {
 	return &res{
-		err: err,
+		sql:  sql,
+		args: args,
+		err:  err,
 	}
 }
 
@@ -66,6 +73,8 @@ type res struct {
 	datalength int             //结果长度
 	rows       *sql.Rows       //查询结果对象
 	err        error           //查询错误
+	sql        string          //查询的sql
+	args       []interface{}   //查询参数
 }
 
 func (r *res) Error(f func(err error)) QueryResult {
@@ -75,17 +84,25 @@ func (r *res) Error(f func(err error)) QueryResult {
 	return r
 }
 
+// 错误保存到日志
+func (r *res) ErrorToLog(log *logrus.Entry, msg string) QueryResult {
+	if r.err != nil && log != nil {
+		log.WithField("sql", r.sql).
+			WithField("req", r.args).
+			WithError(r.err).Errorf("SQL错误:%s", msg)
+	}
+	return r
+}
+
 func (r *res) HasError() error {
 	return r.err
 }
 
 func (r *res) IsEmpty() bool {
-	r.passRows()
 	return r.datalength < 1
 }
 
 func (r *res) Empty(f func()) QueryResult {
-	r.passRows()
 	if r.datalength < 1 && f != nil {
 		f()
 	}
@@ -127,7 +144,6 @@ func (r *res) Get(columnName string, index ...int) interface{} {
 	if len(index) < 1 {
 		index = []int{0}
 	}
-	r.passRows()
 	if index[0] >= r.datalength { //超出数据返回nil
 		return nil
 	}
@@ -145,7 +161,6 @@ func (r *res) GetMap(index ...int) map[string]interface{} {
 	if len(index) < 1 {
 		index = []int{0}
 	}
-	r.passRows()
 	if index[0] >= r.datalength {
 		return nil
 	}
@@ -158,19 +173,16 @@ func (r *res) GetMap(index ...int) map[string]interface{} {
 
 //获取字段列表
 func (r *res) Columns() []string {
-	r.passRows()
 	return r.columns
 }
 
 //获取所有数据
 func (r *res) Rows() [][]interface{} {
-	r.passRows()
 	return r.data
 }
 
 //获取结果长度
 func (r *res) Length() int {
-	r.passRows()
 	return r.datalength
 }
 
@@ -180,7 +192,6 @@ func (r *res) ForEach(f func(map[string]interface{}) bool) QueryResult {
 	if f == nil {
 		return r
 	}
-	r.passRows()
 	if r.datalength < 1 { //没有数据结果直接返回
 		return r
 	}

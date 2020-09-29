@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"github.com/kinwyb/go/conv"
 	"github.com/xwb1989/sqlparser"
 	"net/url"
 	"regexp"
@@ -40,7 +41,8 @@ func Connect(host, username, password, db string) (db.SQL, error) {
 	if err != nil {
 		return nil, err
 	}
-	sqlDB.SetConnMaxIdleTime(10 * time.Minute) //一个小时后重置链接
+	sqlDB.SetMaxOpenConns(30)               //最大连接数
+	sqlDB.SetConnMaxLifetime(1 * time.Hour) //一个小时后重置链接
 	result.SetSQLDB(sqlDB)
 	result.SetDataBaseName(db) //记录数据库名称,表名格式化会用到
 	return result, nil
@@ -65,7 +67,7 @@ func (m *mssql) QueryRows(sql string, args ...interface{}) db.QueryResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrQueryResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
+		return db.ErrQueryResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)), sql, args)
 	}
 	return m.Conn.QueryRows(sql, args...)
 }
@@ -113,7 +115,7 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	sql = strings.ReplaceAll(sql, "?", "@")
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
-		return db.ErrQueryResult(fmt.Errorf("sql语句解析错误:%w", err))
+		return db.ErrQueryResult(fmt.Errorf("sql语句解析错误:%w", err), sql, args)
 	}
 	selectColumn := ""
 	from := ""
@@ -134,7 +136,7 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 		stmt.OrderBy.Format(buf)
 		orderBy = buf.String()
 	default:
-		return db.ErrQueryResult(errors.New("只支持select语句"))
+		return db.ErrQueryResult(errors.New("只支持select语句"), sql, args)
 	}
 	where = strings.ReplaceAll(where, "@", "?")
 	sqlBuilder := strings.Builder{}
@@ -142,18 +144,18 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	sqlBuilder.WriteString(from)
 	sqlBuilder.WriteString(where)
 	result := m.QueryRows(sqlBuilder.String(), args...)
-	count := db.Int64Default(result.Get("num"))
+	count := conv.ToInt64(result.Get("num"))
 	page.SetTotal(count)
 	currentpage := 0
 	if page.Page-1 > 0 {
 		currentpage = page.Page - 1
 	}
 	if count < 1 {
-		return db.NewQueryResult(nil)
+		return db.NewQueryResult(nil, sql, args)
 	}
 	sqlBuilder.Reset()
 	sqlBuilder.WriteString("SELECT TOP ")
-	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows)))
+	sqlBuilder.WriteString(conv.ToString(page.Rows))
 	sqlBuilder.WriteString(" * FROM (SELECT ROW_NUMBER() OVER (")
 	sqlBuilder.WriteString(orderBy)
 	sqlBuilder.WriteString(") as RowNumber,")
@@ -162,7 +164,7 @@ func (m *mssql) QueryWithPage(sql string, page *db.PageObj, args ...interface{})
 	sqlBuilder.WriteString(from)
 	sqlBuilder.WriteString(where)
 	sqlBuilder.WriteString(") as tmp WHERE RowNumber > ")
-	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows * currentpage)))
+	sqlBuilder.WriteString(conv.ToString(page.Rows * currentpage))
 	sqlBuilder.WriteString(" ORDER BY RowNumber ASC ")
 	sql = sqlBuilder.String()
 	return m.QueryRows(sql, args...)
@@ -178,7 +180,7 @@ func (m *mssql) Exec(sql string, args ...interface{}) db.ExecResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrExecResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
+		return db.ErrExecResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)), sql, args)
 	}
 	return m.Conn.Exec(sql, args...)
 }
@@ -202,14 +204,12 @@ type mssqlTx struct {
 
 //Transaction 事务处理
 //@param t TransactionFunc 事务处理函数
-func (m *mssqlTx) Transaction(t db.TransactionFunc, option ...*db.TxOption) error {
+func (m *mssqlTx) Transaction(t db.TransactionFunc, options ...*db.TxOption) error {
 	if t != nil {
-		if len(option) > 0 && option[0] != nil {
-			if option[0].New {
-				option[0].New = false
-				//要求新事物返回新事务
-				return m.db.Transaction(t, option...)
-			}
+		if len(options) > 0 && options[0] != nil && options[0].New {
+			options[0].New = false
+			//要求新事物返回新事务
+			return m.db.Transaction(t, options...)
 		}
 		//本身就是事务了，直接调用即可
 		return t(m)
@@ -231,7 +231,7 @@ func (m *mssqlTx) QueryRows(sql string, args ...interface{}) db.QueryResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrQueryResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
+		return db.ErrQueryResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)), sql, args)
 	}
 	return m.TxSQL.QueryRows(sql, args...)
 }
@@ -283,7 +283,7 @@ func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 	}
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
-		return db.ErrQueryResult(fmt.Errorf("sql语句解析错误:%w", err))
+		return db.ErrQueryResult(fmt.Errorf("sql语句解析错误:%w", err), sql, args)
 	}
 	selectColumn := ""
 	from := ""
@@ -304,25 +304,25 @@ func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 		stmt.OrderBy.Format(buf)
 		orderBy = buf.String()
 	default:
-		return db.ErrQueryResult(errors.New("只支持select语句"))
+		return db.ErrQueryResult(errors.New("只支持select语句"), sql, args)
 	}
 	sqlBuilder := strings.Builder{}
 	sqlBuilder.WriteString("SELECT count(0) num FROM ")
 	sqlBuilder.WriteString(from)
 	sqlBuilder.WriteString(where)
 	result := m.QueryRows(sqlBuilder.String(), args...)
-	count := db.Int64Default(result.Get("num"))
+	count := conv.ToInt64(result.Get("num"))
 	page.SetTotal(count)
 	currentpage := 0
 	if page.Page-1 > 0 {
 		currentpage = page.Page - 1
 	}
 	if count < 1 {
-		return db.NewQueryResult(nil)
+		return db.NewQueryResult(nil, sql, args)
 	}
 	sqlBuilder.Reset()
 	sqlBuilder.WriteString("SELECT TOP ")
-	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows)))
+	sqlBuilder.WriteString(conv.ToString(page.Rows))
 	sqlBuilder.WriteString(" * FROM (SELECT ROW_NUMBER() OVER (")
 	sqlBuilder.WriteString(orderBy)
 	sqlBuilder.WriteString(") as RowNumber,")
@@ -331,7 +331,7 @@ func (m *mssqlTx) QueryWithPage(sql string, page *db.PageObj, args ...interface{
 	sqlBuilder.WriteString(from)
 	sqlBuilder.WriteString(where)
 	sqlBuilder.WriteString(") as tmp WHERE RowNumber > ")
-	sqlBuilder.WriteString(db.StringDefault(int64(page.Rows * currentpage)))
+	sqlBuilder.WriteString(conv.ToString(page.Rows * currentpage))
 	sqlBuilder.WriteString(" ORDER BY RowNumber ASC ")
 	sql = sqlBuilder.String()
 	return m.QueryRows(sql, args...)
@@ -347,7 +347,7 @@ func (m *mssqlTx) Exec(sql string, args ...interface{}) db.ExecResult {
 		return fmt.Sprintf("@p%d", i)
 	})
 	if len(args) < i {
-		return db.ErrExecResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)))
+		return db.ErrExecResult(fmt.Errorf("参数缺少,目标参数%d个,实际参数%d个", i, len(args)), sql, args)
 	}
 	return m.TxSQL.Exec(sql, args...)
 }
@@ -358,24 +358,10 @@ func UniqueIdentifierToString(v interface{}) string {
 		return ""
 	}
 	i := sqlserver.UniqueIdentifier{}
-	i.Scan(v)
+	_ = i.Scan(v)
 	ret := i.String()
 	if ret == "00000000-0000-0000-0000-000000000000" {
 		return ""
 	}
 	return ret
-}
-
-// 日期时间转换成字符串
-func DateTimeToString(v interface{}) string {
-	if v == nil {
-		return ""
-	}
-	switch v.(type) {
-	case time.Time:
-		t := v.(time.Time)
-		return t.Format("2006-01-02 15:04:05")
-	default:
-		return db.StringDefault(v, "")
-	}
 }
