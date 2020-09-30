@@ -350,7 +350,49 @@ func ToStringMapE(i interface{}) (map[string]interface{}, error) {
 
 // ToSlice casts an interface to a []interface{} type.
 func ToSliceE(i interface{}) ([]interface{}, error) {
-	return cast.ToSliceE(i)
+	ret, err := cast.ToSliceE(i)
+	if err == nil {
+		return ret, nil
+	}
+	switch v := i.(type) {
+	case []string:
+		for _, v1 := range v {
+			ret = append(ret, v1)
+		}
+		return ret, nil
+	case []int64:
+		for _, v1 := range v {
+			ret = append(ret, v1)
+		}
+		return ret, nil
+	case []int:
+		for _, v1 := range v {
+			ret = append(ret, v1)
+		}
+		return ret, nil
+	case []float64:
+		for _, v1 := range v {
+			ret = append(ret, v1)
+		}
+		return ret, nil
+	case []float32:
+		for _, v1 := range v {
+			ret = append(ret, v1)
+		}
+		return ret, nil
+	case []int32:
+		for _, v1 := range v {
+			ret = append(ret, v1)
+		}
+		return ret, nil
+	case []bool:
+		for _, v1 := range v {
+			ret = append(ret, v1)
+		}
+		return ret, nil
+	default:
+		return ret, err
+	}
 }
 
 // ToBoolSlice casts an interface to a []bool type.

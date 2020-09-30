@@ -13,7 +13,7 @@ type ExecResult interface {
 	// 出错时回调参数方法
 	Error(func(error)) ExecResult
 	// 错误保存到日志
-	ErrorToLog(log *logrus.Entry, msg string) ExecResult
+	ErrorToLog(log *logrus.Entry, msg ...string) ExecResult
 	//是否出错
 	HasError(reportZeroChange ...bool) error
 }
@@ -49,11 +49,20 @@ func (r *rus) Error(f func(err error)) ExecResult {
 	return r
 }
 
-func (r *rus) ErrorToLog(log *logrus.Entry, msg string) ExecResult {
+func (r *rus) ErrorToLog(log *logrus.Entry, msg ...string) ExecResult {
 	if r.err != nil && log != nil {
-		log.WithField("sql", r.sql).
+		lg := log.WithField("sql", r.sql).
 			WithField("req", r.args).
-			WithError(r.err).Errorf("SQL错误:%s", msg)
+			WithError(r.err)
+		if len(msg) > 0 {
+			var msgs = []interface{}{"SQL错误:"}
+			for _, v := range msg {
+				msgs = append(msgs, v)
+			}
+			lg.Error(msgs...)
+		} else {
+			lg.Error("SQL错误")
+		}
 	}
 	return r
 }
@@ -92,9 +101,18 @@ func (r *rusMsg) Error(f func(err error)) ExecResult {
 	return r
 }
 
-func (r *rusMsg) ErrorToLog(log *logrus.Entry, msg string) ExecResult {
+func (r *rusMsg) ErrorToLog(log *logrus.Entry, msg ...string) ExecResult {
 	if r.err != nil && log != nil {
-		log.WithError(r.err).Errorf("SQL错误:%s", msg)
+		lg := log.WithError(r.err)
+		if len(msg) > 0 {
+			var msgs = []interface{}{"SQL错误:"}
+			for _, v := range msg {
+				msgs = append(msgs, v)
+			}
+			lg.Error(msgs...)
+		} else {
+			lg.Error("SQL错误")
+		}
 	}
 	return r
 }

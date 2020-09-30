@@ -15,7 +15,7 @@ type QueryResult interface {
 	//出错时回调参数方法
 	Error(func(error)) QueryResult
 	// 错误保存到日志
-	ErrorToLog(log *logrus.Entry, msg string) QueryResult
+	ErrorToLog(log *logrus.Entry, msg ...string) QueryResult
 	//是否出错
 	HasError() error
 	//是否为空
@@ -85,11 +85,20 @@ func (r *res) Error(f func(err error)) QueryResult {
 }
 
 // 错误保存到日志
-func (r *res) ErrorToLog(log *logrus.Entry, msg string) QueryResult {
+func (r *res) ErrorToLog(log *logrus.Entry, msg ...string) QueryResult {
 	if r.err != nil && log != nil {
-		log.WithField("sql", r.sql).
+		lg := log.WithField("sql", r.sql).
 			WithField("req", r.args).
-			WithError(r.err).Errorf("SQL错误:%s", msg)
+			WithError(r.err)
+		if len(msg) > 0 {
+			var msgs = []interface{}{"SQL错误:"}
+			for _, v := range msg {
+				msgs = append(msgs, v)
+			}
+			lg.Error(msgs...)
+		} else {
+			lg.Error("SQL错误")
+		}
 	}
 	return r
 }
