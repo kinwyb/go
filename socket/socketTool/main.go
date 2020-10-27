@@ -17,6 +17,7 @@ var (
 	serverAddr       string //服务器地址
 	aliveTime        int64  //存货时间
 	interval         int64  //间隔时间
+	userInput        bool   //用户输入
 	log              = logs.GetDefaultLogger()
 )
 
@@ -115,16 +116,30 @@ func clientRun(cmd *cobra.Command, args []string) {
 	if interval < 1 {
 		interval = 1
 	}
-	ticker := time.NewTicker(time.Duration(interval) * time.Second)
-	i := 1
-	for {
-		select {
-		case <-ticker.C:
-			client.Write([]byte(fmt.Sprintf("消息:%d", i)))
-			i++
-		case <-ctx.Done():
-			ticker.Stop()
-			return
+	if userInput {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				var str = ""
+				fmt.Print("> ")
+				fmt.Scanln(&str)
+				client.Write([]byte(fmt.Sprintf("%s", str)))
+			}
+		}
+	} else {
+		ticker := time.NewTicker(time.Duration(interval) * time.Second)
+		i := 1
+		for {
+			select {
+			case <-ticker.C:
+				client.Write([]byte(fmt.Sprintf("消息:%d", i)))
+				i++
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			}
 		}
 	}
 }
@@ -138,6 +153,7 @@ func main() {
 	client.Flags().StringVarP(&serverAddr, "server", "s", "127.0.0.1:1222", "服务器地址")
 	client.Flags().Int64VarP(&interval, "interval", "i", 1, "消息发送间隔(s),默认:1s")
 	client.Flags().Int64Var(&aliveTime, "alive", 0, "持续时间(s)默认0表示一直运行")
+	client.Flags().BoolVar(&userInput, "input", false, "手工输入")
 
 	var rootCmd = &cobra.Command{Use: "tcpTool"}
 	rootCmd.AddCommand(server, client)
