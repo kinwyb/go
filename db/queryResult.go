@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"errors"
+	sqlserver "github.com/denisenkom/go-mssqldb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
 )
@@ -122,6 +123,13 @@ func (r *res) Empty(f func()) QueryResult {
 func (r *res) passRows() {
 	if r.rows != nil {
 		r.data = make([][]interface{}, 0)
+		columnTypes, _ := r.rows.ColumnTypes()
+		var uniqueidentifierIndexs []int //mssql UNIQUEIDENTIFIER类型数据坐标ID
+		for i, v := range columnTypes {
+			if v.DatabaseTypeName() == "UNIQUEIDENTIFIER" {
+				uniqueidentifierIndexs = append(uniqueidentifierIndexs, i)
+			}
+		}
 		for r.rows.Next() {
 			row := make([]interface{}, len(r.columns))
 			for i := range row {
@@ -138,6 +146,16 @@ func (r *res) passRows() {
 			}
 			for k, v := range row {
 				row[k] = *v.(*interface{})
+			}
+			for _, index := range uniqueidentifierIndexs {
+				value := row[index]
+				if value != nil {
+					i := sqlserver.UniqueIdentifier{}
+					e := i.Scan(value)
+					if e == nil {
+						row[index] = i.String()
+					}
+				}
 			}
 			r.data = append(r.data, row)
 		}

@@ -359,9 +359,5 @@ func UniqueIdentifierToString(v interface{}) string {
 	}
 	i := sqlserver.UniqueIdentifier{}
 	_ = i.Scan(v)
-	ret := i.String()
-	if ret == "00000000-0000-0000-0000-000000000000" {
-		return ""
-	}
-	return ret
+	return i.String()
 }
