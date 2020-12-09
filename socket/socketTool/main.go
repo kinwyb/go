@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/kinwyb/go/socket"
@@ -90,7 +91,12 @@ func clientRun(cmd *cobra.Command, args []string) {
 			log.Errorf("%s => %s", errorType, e.Error())
 		},
 		MessageHandler: func(msg []byte) {
-			log.Infof("收到消息: %s", string(msg))
+			if userInput {
+				fmt.Printf("收到消息: %s", string(msg))
+				fmt.Print("> ")
+			} else {
+				log.Infof("收到消息: %s", string(msg))
+			}
 		},
 		CloseHandler: func() {
 			log.Info("连接关闭")
@@ -125,6 +131,9 @@ func clientRun(cmd *cobra.Command, args []string) {
 				var str = ""
 				fmt.Print("> ")
 				fmt.Scanln(&str)
+				if str == "\\exit" {
+					os.Exit(0)
+				}
 				client.Write([]byte(fmt.Sprintf("%s", str)))
 			}
 		}
