@@ -24,9 +24,12 @@ type mssql struct {
 
 //链接mssql数据库
 //eg:sqlserver://sa:mypass@localhost?database=master
-func Connect(host, username, password, db string) (db.SQL, error) {
+func Connect(host, username, password, db string, params ...url.Values) (db.SQL, error) {
 	query := url.Values{}
-	query.Add("database", db)
+	if len(params) > 0 {
+		query = params[0]
+	}
+	query.Set("database", db)
 	u := &url.URL{
 		Scheme: "sqlserver",
 		User:   url.UserPassword(username, password),
