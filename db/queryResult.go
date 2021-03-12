@@ -6,6 +6,8 @@ import (
 	sqlserver "github.com/denisenkom/go-mssqldb"
 	"github.com/gogo/protobuf/proto"
 	"github.com/sirupsen/logrus"
+	"io"
+	"sync"
 )
 
 //查询结果返回接口
@@ -35,6 +37,8 @@ type QueryResult interface {
 	GetMap(index ...int) map[string]interface{}
 	//获取结果长度
 	Length() int
+	// 获取记录游标
+	Iterator() RowIterator
 }
 
 //读取查询结果
@@ -237,6 +241,17 @@ func (r *res) ForEach(f func(map[string]interface{}) bool) QueryResult {
 	return r
 }
 
+// 获取记录游标
+func (r *res) Iterator() RowIterator {
+	return &rowDataIterator{
+		data:    r.data,
+		columns: r.columns,
+		index:   0,
+		row:     nil,
+		lock:    sync.Mutex{},
+	}
+}
+
 // 查询结果序列化成字节数组
 func QueryResultToBytes(q QueryResult) []byte {
 	msg := &QueryResultMsg{
@@ -280,4 +295,54 @@ func BytesToQueryResult(data []byte) QueryResult {
 		r.data = append(r.data, r1)
 	}
 	return r
+}
+
+// 行读取游标
+type RowIterator interface {
+	// 是否有下一条记录
+	HasNext() bool
+	// 重置游标到首位
+	Reset()
+	// 获取下一条数据
+	Next() (map[string]interface{}, error)
+}
+
+type rowDataIterator struct {
+	data    [][]interface{}
+	columns []string
+	index   int
+	row     map[string]interface{}
+	lock    sync.Mutex
+}
+
+// 判断是否有下一条记录
+func (r *rowDataIterator) HasNext() bool {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return len(r.data) > r.index
+}
+
+// 重置游标
+func (r *rowDataIterator) Reset() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.index = 0
+}
+
+// 取下一条数据
+func (r *rowDataIterator) Next() (map[string]interface{}, error) {
+	if len(r.data) < 1 || r.index >= len(r.data) {
+		return nil, io.EOF
+	}
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	if r.row == nil {
+		r.row = map[string]interface{}{}
+	}
+	data := r.data[r.index]
+	for i, vv := range r.columns {
+		r.row[vv] = data[i]
+	}
+	r.index++
+	return r.row, nil
 }

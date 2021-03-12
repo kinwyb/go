@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
 	"testing"
 )
 
@@ -40,4 +41,12 @@ func TestQueryResultToByte(t *testing.T) {
 	r2 := BytesToQueryResult(b)
 	fmt.Println(r2.Columns())
 	fmt.Println(r2.Length())
+	it := r.Iterator()
+	for it.HasNext() {
+		data, err := it.Next()
+		if err == io.EOF {
+			break
+		}
+		fmt.Printf("%v\n", data)
+	}
 }

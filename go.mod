@@ -12,6 +12,10 @@ replace golang.org/x/net v0.0.0-20180906233101-161cd47e91fd => github.com/golang
 
 replace golang.org/x/lint v0.0.0-20190409202823-959b441ac422 => github.com/golang/lint v0.0.0-20190409202823-959b441ac422
 
+replace golang.org/x/tools v0.0.0-20190208222737-3744606dbb67 => github.com/golang/tools v0.0.0-20190208222737-3744606dbb67
+
+replace golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f => github.com/golang/crypto v0.0.0-20190208162236-193df9c0f06f
+
 require (
 	cloud.google.com/go v0.36.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
