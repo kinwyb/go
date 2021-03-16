@@ -46,9 +46,7 @@ func (l *Logger) EnableSource() {
 	if l.enableSource {
 		return
 	}
-	l.Logger.AddHook(&LineHook{
-		Field: "source",
-	})
+	l.Logger.SetReportCaller(true)
 }
 
 // 日志输入到文件
