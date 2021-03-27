@@ -3,6 +3,7 @@ package socket
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"strings"
@@ -181,6 +182,9 @@ func (s *SClient) readData() {
 		if s.doClose {
 			return
 		} else if err != nil {
+			if err == io.EOF { //读取结束
+				return
+			}
 			if s.server.config.Log != nil {
 				s.server.config.Log.Errorf("%s=>数据读取错误:%s", s.ID, err.Error())
 			}

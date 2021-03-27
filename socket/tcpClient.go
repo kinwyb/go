@@ -3,6 +3,7 @@ package socket
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"time"
 
@@ -107,7 +108,7 @@ func (c *TcpClient) readData() {
 			return
 		}
 		if err != nil {
-			if c.config.ErrorHandler != nil {
+			if err != io.EOF && c.config.ErrorHandler != nil {
 				c.config.ErrorHandler(ReadErr, err)
 			}
 			c.connectClose()

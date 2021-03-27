@@ -8,7 +8,6 @@ const (
 	ReadErr                         //消息读取错误
 	SendErr                         //消息发送错误
 	ListenErr                       //服务器监听错误
-	CancelErr                       //关闭[废弃]
 )
 
 func (e ErrorType) String() string {
@@ -22,7 +21,7 @@ func (e ErrorType) String() string {
 	case ListenErr:
 		return "监听错误"
 	default:
-		return ""
+		return "未知错误"
 	}
 }
 
