@@ -19,7 +19,7 @@ replace golang.org/x/crypto v0.0.0-20190208162236-193df9c0f06f => github.com/gol
 require (
 	cloud.google.com/go v0.36.0 // indirect
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
-	github.com/astaxie/beego v1.10.1
+	github.com/astaxie/beego v1.12.2
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/coreos/bbolt v1.3.0 // indirect
 	github.com/coreos/etcd v3.3.9+incompatible
@@ -30,10 +30,10 @@ require (
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-redsync/redsync v1.3.0
-	github.com/go-sql-driver/mysql v1.4.0
+	github.com/go-sql-driver/mysql v1.5.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7 // indirect
-	github.com/golang/protobuf v1.3.2
+	github.com/golang/protobuf v1.4.2
 	github.com/gomodule/redigo v2.0.0+incompatible
 	github.com/gorilla/websocket v1.4.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
@@ -62,7 +62,6 @@ require (
 	github.com/spf13/pflag v1.0.2 // indirect
 	github.com/tebeka/strftime v0.1.4 // indirect
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20171017195756-830351dc03c6 // indirect
-	github.com/ugorji/go/codec v0.0.0-20180831062425-e253f1f20942 // indirect
 	github.com/vmihailenco/msgpack v4.0.0+incompatible
 	github.com/vrischmann/go-metrics-influxdb v0.1.1
 	github.com/xiang90/probing v0.0.0-20160813154853-07dd2e8dfe18 // indirect
@@ -70,7 +69,6 @@ require (
 	golang.org/x/tools v0.0.0-20210106214847-113979e3529a
 	google.golang.org/appengine v1.4.0 // indirect
 	google.golang.org/grpc v1.18.0 // indirect
-	gopkg.in/check.v1 v1.0.0-20180628173108-788fd7840127 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
 
